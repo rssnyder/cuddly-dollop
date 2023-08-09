@@ -20,13 +20,11 @@ HEADERS = {
 
 
 def test_resp(resp):
-
     if resp.json().get("status") != "SUCCESS":
         print(resp.text)
 
 
 def get_delegates():
-
     return s.get(
         "https://app.harness.io/gateway/ng/api/delegate-token-ng/delegate-groups",
         params=PARAMS,
@@ -35,7 +33,6 @@ def get_delegates():
 
 
 def get_connector(identifier: str):
-
     return s.get(
         f"https://app.harness.io/ng/api/connectors/{identifier}",
         params=PARAMS,
@@ -44,7 +41,6 @@ def get_connector(identifier: str):
 
 
 def create_k8s_connector(identifier: str, delegate_name: str):
-
     return s.post(
         "https://app.harness.io/gateway/ng/api/connectors",
         params=PARAMS,
@@ -67,7 +63,6 @@ def create_k8s_connector(identifier: str, delegate_name: str):
 
 
 def create_k8s_ccm_connector(identifier: str, k8s_connector: str):
-
     return s.post(
         "https://app.harness.io/gateway/ng/api/connectors",
         params=PARAMS,
@@ -89,11 +84,9 @@ def create_k8s_ccm_connector(identifier: str, k8s_connector: str):
 
 
 if __name__ == "__main__":
-
     resp = get_delegates()
 
     for group in resp.json().get("resource", {}).get("delegateGroupDetails", []):
-
         identifier = group.get("delegateGroupIdentifier")
         name = group.get("groupName")
 

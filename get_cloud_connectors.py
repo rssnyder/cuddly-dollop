@@ -1,4 +1,6 @@
 from os import getenv
+from csv import writer
+from datetime import datetime
 
 from requests import post, get, Session
 from requests.adapters import HTTPAdapter, Retry
@@ -19,7 +21,6 @@ HEADERS = {
 
 
 def get_connectors(kind: str, page: int = 0):
-
     return s.post(
         "https://app.harness.io/ng/api/connectors/listV2",
         params={
@@ -31,68 +32,95 @@ def get_connectors(kind: str, page: int = 0):
             "filterType": "Connector",
             "types": [
                 kind,
-            ]
-        }
+            ],
+        },
     )
 
 
 def get_connector_status(identifier: str):
-
     return s.post(
         f"https://app.harness.io/ng/api/connectors/testConnection/{identifier}",
         params={
             "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
         },
-        headers=HEADERS
+        headers=HEADERS,
     )
 
 
 if __name__ == "__main__":
+    with open(
+        f"connectors_{datetime.now()}.csv".replace(" ", "_"), "w", newline=""
+    ) as csvfile:
+        csvwriter = writer(csvfile, delimiter=",")
 
-    resp_data = get_connectors("CEAws").json()
+        resp_data = get_connectors("CEAws").json()
 
-    while resp_data.get("data", {}).get("pageIndex") <= resp_data.get("data", {}).get("totalPages"):
-        
-        for connector in resp_data.get("data", {}).get("content", []):
-            connector_data = connector.get("connector")
+        while resp_data.get("data", {}).get("pageIndex") <= resp_data.get(
+            "data", {}
+        ).get("totalPages"):
+            for connector in resp_data.get("data", {}).get("content", []):
+                connector_data = connector.get("connector")
 
-            resp = get_connector_status(connector_data.get("identifier"))
-            status = resp.json().get("status")
-            if status != "SUCCESS":
-                status += ": " + resp.json().get("message")
+                resp = get_connector_status(connector_data.get("identifier"))
+                status = resp.json().get("status")
+                if status != "SUCCESS":
+                    status += ": " + resp.json().get("message")
 
-            print(f"aws,{connector_data.get('spec', {}).get('awsAccountId')},{status}")
-        
-        resp_data = get_connectors("CEAws", resp_data.get("data", {}).get("pageIndex") + 1).json()
-    
-    resp_data = get_connectors("CEAzure").json()
+                # print(f"aws,{connector_data.get('spec', {}).get('awsAccountId')},{status}")
+                csvwriter.writerow(
+                    ["aws", connector_data.get("spec", {}).get("awsAccountId"), status]
+                )
 
-    while resp_data.get("data", {}).get("pageIndex") <= resp_data.get("data", {}).get("totalPages"):
-        
-        for connector in resp_data.get("data", {}).get("content", []):
-            connector_data = connector.get("connector")
+            resp_data = get_connectors(
+                "CEAws", resp_data.get("data", {}).get("pageIndex") + 1
+            ).json()
 
-            resp = get_connector_status(connector_data.get("identifier"))
-            status = resp.json().get("status")
-            if status != "SUCCESS":
-                status += ": " + resp.json().get("message")
+        resp_data = get_connectors("CEAzure").json()
 
-            print(f"azure,{connector_data.get('spec', {}).get('subscriptionId')},{status}")
-        
-        resp_data = get_connectors("CEAzure", resp_data.get("data", {}).get("pageIndex") + 1).json()
+        while resp_data.get("data", {}).get("pageIndex") <= resp_data.get(
+            "data", {}
+        ).get("totalPages"):
+            for connector in resp_data.get("data", {}).get("content", []):
+                connector_data = connector.get("connector")
 
-    resp_data = get_connectors("GcpCloudCost").json()
+                resp = get_connector_status(connector_data.get("identifier"))
+                status = resp.json().get("status")
+                if status != "SUCCESS":
+                    status += ": " + resp.json().get("message")
 
-    while resp_data.get("data", {}).get("pageIndex") <= resp_data.get("data", {}).get("totalPages"):
-        
-        for connector in resp_data.get("data", {}).get("content", []):
-            connector_data = connector.get("connector")
+                # print(
+                #     f"azure,{connector_data.get('spec', {}).get('subscriptionId')},{status}"
+                # )
+                csvwriter.writerow(
+                    [
+                        "azure",
+                        connector_data.get("spec", {}).get("subscriptionId"),
+                        status,
+                    ]
+                )
 
-            resp = get_connector_status(connector_data.get("identifier"))
-            status = resp.json().get("status")
-            if status != "SUCCESS":
-                status += ": " + resp.json().get("message")
+            resp_data = get_connectors(
+                "CEAzure", resp_data.get("data", {}).get("pageIndex") + 1
+            ).json()
 
-            print(f"gcp,{connector_data.get('spec', {}).get('projectId')},{status}")
-        
-        resp_data = get_connectors("GcpCloudCost", resp_data.get("data", {}).get("pageIndex") + 1).json()
+        resp_data = get_connectors("GcpCloudCost").json()
+
+        while resp_data.get("data", {}).get("pageIndex") <= resp_data.get(
+            "data", {}
+        ).get("totalPages"):
+            for connector in resp_data.get("data", {}).get("content", []):
+                connector_data = connector.get("connector")
+
+                resp = get_connector_status(connector_data.get("identifier"))
+                status = resp.json().get("status")
+                if status != "SUCCESS":
+                    status += ": " + resp.json().get("message")
+
+                # print(f"gcp,{connector_data.get('spec', {}).get('projectId')},{status}")
+                csvwriter.writerow(
+                    ["gcp", connector_data.get("spec", {}).get("projectId"), status]
+                )
+
+            resp_data = get_connectors(
+                "GcpCloudCost", resp_data.get("data", {}).get("pageIndex") + 1
+            ).json()

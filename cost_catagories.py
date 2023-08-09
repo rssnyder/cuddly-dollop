@@ -7,7 +7,6 @@ from common import CloudAccount, CostCatagory
 
 
 if __name__ == "__main__":
-
     # program arguments
     if len(argv) < 4:
         print(
@@ -35,7 +34,6 @@ if __name__ == "__main__":
             next(datareader)
 
             for row in datareader:
-
                 # create instance of account with given data
                 account = CloudAccount(
                     row[0],

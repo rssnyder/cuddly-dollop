@@ -44,7 +44,6 @@ class CloudAccount:
         unit_group: str,
         unit_group_owner: str,
     ):
-
         cloud_fmt = cloud.lower()
         if cloud_fmt not in ["aws", "azure", "gcp"]:
             raise Exception(f"Unknown cloud {cloud}")
@@ -67,7 +66,6 @@ class CloudAccount:
         service_account_email: str,
         dry_run: bool = False,
     ):
-
         if self.identifier == self.payer_id:
             return f"CONNECTOR:skipped{spacing}{self.name} seems to be a payer account, skipping"
 
@@ -217,7 +215,6 @@ class CostCatagory:
         self.buckets = []
 
     def __repr__(self):
-
         result = self.name
         result += f"\n\nNumber of buckets: {len(self.buckets)}\n\n"
         clouds = {"aws": 0, "gcp": 0, "azure": 0}
@@ -233,7 +230,6 @@ class CostCatagory:
         return result
 
     def add(self, bucket_name: str, new: CloudAccount):
-
         # check bucket exists and add
         if not [
             x.add(new.cloud, new.identifier)
@@ -251,9 +247,7 @@ class CostCatagory:
             return {}
 
     def update(self):
-
         if self.get_cc().get("uuid"):
-
             resp = s.put(
                 "https://app.harness.io/gateway/ccm/api/business-mapping",
                 params={
@@ -294,7 +288,6 @@ class Bucket:
         self.gcp = []
 
     def __repr__(self):
-
         result = "\n" + self.name
         result += "\nAWS: " + str(self.aws)
         result += "\nAzure: " + str(self.azure)
@@ -318,7 +311,6 @@ class Bucket:
         return len(self.aws) + len(self.azure) + len(self.gcp)
 
     def payload(self):
-
         payload = {
             "name": self.name,
             "rules": [],

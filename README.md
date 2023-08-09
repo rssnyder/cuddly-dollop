@@ -37,6 +37,16 @@ usage: `cluster_connectors.py`
 
 # get_cloud_connectors.py
 
-get the status of all AWS, Azure, and GCP cloud connectors
+get the status of all AWS, Azure, and GCP cloud connectors, output into a csv
 
 usage: `get_cloud_connectors.py`
+
+# governance_export.py
+
+get all the governance evaluations for a month, output into a csv
+
+usage: `governance_export.py`
+
+to run for the previous month, specify how many months to go back, example for 2 months ago (in August now, want to get data for June):
+
+usage: `governance_export.py 2`
