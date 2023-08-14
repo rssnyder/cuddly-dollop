@@ -1,4 +1,5 @@
 from os import getenv
+from sys import argv
 
 from requests import post, get, Session
 from requests.adapters import HTTPAdapter, Retry
@@ -89,6 +90,10 @@ if __name__ == "__main__":
     for group in resp.json().get("resource", {}).get("delegateGroupDetails", []):
         identifier = group.get("delegateGroupIdentifier")
         name = group.get("groupName")
+
+        if len(argv) > 1:
+            print(name)
+            continue
 
         resp = get_connector(identifier)
 

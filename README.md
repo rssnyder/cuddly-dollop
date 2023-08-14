@@ -35,6 +35,10 @@ create k8s and k8s ccm connectors for delegates seen at the account level
 
 usage: `cluster_connectors.py`
 
+By adding anything to the end of the command, we instead just get a list of delegates in your account
+
+usage: `cluster_connectors.py list`
+
 # get_cloud_connectors.py
 
 get the status of all AWS, Azure, and GCP cloud connectors, output into a csv
