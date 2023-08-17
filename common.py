@@ -53,6 +53,8 @@ class CloudAccount:
         self.payer = payer
         self.name = name
         self.identifier = identifier
+        if self.cloud == "aws":
+            self.identifier = self.identifier.replace("-", "")
         self.bu = bu
         self.unit_group = unit_group
         self.unit_group_owner = unit_group_owner
