@@ -20,7 +20,7 @@ if __name__ == "__main__":
     cross_account_role = argv[1]
     tenant_id = argv[2]
     service_account_email = argv[3]
-    files = argv[7:]
+    files = argv[4:]
 
     # loop through file and pull in account information
     for file_csv in files:
