@@ -1,5 +1,6 @@
 from os import getenv
 from re import sub
+from datetime import datetime, timedelta
 
 from requests import get, put, post, delete, exceptions, Session
 from requests.adapters import HTTPAdapter, Retry
@@ -30,6 +31,148 @@ def get_all_cc() -> list:
     resp.raise_for_status()
 
     return resp.json().get("resource", {}).get("businessMappings", [])
+
+
+def get_harness_perspective_folder():
+    resp = s.get(
+        "https://app.harness.io/ccm/api/perspectiveFolders",
+        params={
+            "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+        },
+        headers={
+            "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+        },
+    )
+
+    return [
+        x.get("uuid")
+        for x in resp.json().get("data", [])
+        if x.get("name") == "By Harness"
+    ].pop()
+
+
+def get_harness_perspective(cloud: str):
+    folder = get_harness_perspective_folder()
+
+    resp = s.get(
+        f"https://app.harness.io/ccm/api/perspectiveFolders/{folder}/perspectives",
+        params={
+            "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+        },
+        headers={
+            "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+        },
+    )
+
+    return [
+        x.get("id") for x in resp.json().get("data", []) if x.get("name") == cloud
+    ].pop()
+
+
+def get_aws_account_cost(account_id: str, days_ago: int = 90) -> int:
+    perspective_id = get_harness_perspective("AWS")
+
+    # calculate last 90 days
+    current_date = datetime.now()
+
+    # Calculate the date from 90 days ago
+    days_ago = timedelta(days=days_ago)
+    date_90_days_ago = current_date - days_ago
+
+    resp = s.post(
+        "https://app.harness.io/ccm/api/costdetails/overview",
+        params={
+            "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+            "perspectiveId": perspective_id,
+            "startTime": date_90_days_ago.strftime("%Y-%m-%d"),
+            "endTime": current_date.strftime("%Y-%m-%d"),
+        },
+        headers={
+            "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+        },
+        json={
+            "filters": [
+                {"field": "AWS_ACCOUNT", "operator": "IN", "values": [account_id]}
+            ],
+        },
+    )
+
+    if resp.status_code == 200:
+        return resp.json().get("data", {}).get("value", 0)
+    else:
+        return 0
+
+
+def get_azure_subscription_cost(subscrition_id: str, days_ago: int = 90) -> int:
+    perspective_id = get_harness_perspective("Azure")
+
+    # calculate last 90 days
+    current_date = datetime.now()
+
+    # Calculate the date from 90 days ago
+    days_ago = timedelta(days=days_ago)
+    date_90_days_ago = current_date - days_ago
+
+    resp = s.post(
+        "https://app.harness.io/ccm/api/costdetails/overview",
+        params={
+            "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+            "perspectiveId": perspective_id,
+            "startTime": date_90_days_ago.strftime("%Y-%m-%d"),
+            "endTime": current_date.strftime("%Y-%m-%d"),
+        },
+        headers={
+            "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+        },
+        json={
+            "filters": [
+                {
+                    "field": "AZURE_SUBSCRIPTION_GUID",
+                    "operator": "IN",
+                    "values": [subscrition_id],
+                }
+            ],
+        },
+    )
+
+    if resp.status_code == 200:
+        return resp.json().get("data", {}).get("value", 0)
+    else:
+        return 0
+
+
+def get_gcp_project_cost(project_id: str, days_ago: int = 90) -> int:
+    perspective_id = get_harness_perspective("GCP")
+
+    # calculate last 90 days
+    current_date = datetime.now()
+
+    # Calculate the date from 90 days ago
+    days_ago = timedelta(days=days_ago)
+    date_90_days_ago = current_date - days_ago
+
+    resp = s.post(
+        "https://app.harness.io/ccm/api/costdetails/overview",
+        params={
+            "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+            "perspectiveId": perspective_id,
+            "startTime": date_90_days_ago.strftime("%Y-%m-%d"),
+            "endTime": current_date.strftime("%Y-%m-%d"),
+        },
+        headers={
+            "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+        },
+        json={
+            "filters": [
+                {"field": "GCP_PROJECT", "operator": "IN", "values": [project_id]}
+            ],
+        },
+    )
+
+    if resp.status_code == 200:
+        return resp.json().get("data", {}).get("value", 0)
+    else:
+        return 0
 
 
 class CloudAccount:

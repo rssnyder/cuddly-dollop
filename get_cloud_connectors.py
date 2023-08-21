@@ -1,9 +1,15 @@
 from os import getenv
 from csv import writer
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from requests import post, get, Session
 from requests.adapters import HTTPAdapter, Retry
+
+from common import (
+    get_aws_account_cost,
+    get_azure_subscription_cost,
+    get_gcp_project_cost,
+)
 
 s = Session()
 
@@ -67,8 +73,9 @@ if __name__ == "__main__":
                     status += ": " + resp.json().get("message")
 
                 # print(f"aws,{connector_data.get('spec', {}).get('awsAccountId')},{status}")
+                account_id = connector_data.get("spec", {}).get("awsAccountId")
                 csvwriter.writerow(
-                    ["aws", connector_data.get("spec", {}).get("awsAccountId"), status]
+                    ["aws", account_id, status, get_aws_account_cost(account_id)]
                 )
 
             resp_data = get_connectors(
@@ -91,11 +98,13 @@ if __name__ == "__main__":
                 # print(
                 #     f"azure,{connector_data.get('spec', {}).get('subscriptionId')},{status}"
                 # )
+                subscrition_id = connector_data.get("spec", {}).get("subscriptionId")
                 csvwriter.writerow(
                     [
                         "azure",
-                        connector_data.get("spec", {}).get("subscriptionId"),
+                        subscrition_id,
                         status,
+                        get_azure_subscription_cost(subscrition_id),
                     ]
                 )
 
@@ -117,8 +126,9 @@ if __name__ == "__main__":
                     status += ": " + resp.json().get("message")
 
                 # print(f"gcp,{connector_data.get('spec', {}).get('projectId')},{status}")
+                project_id = connector_data.get("spec", {}).get("projectId")
                 csvwriter.writerow(
-                    ["gcp", connector_data.get("spec", {}).get("projectId"), status]
+                    ["gcp", project_id, status, get_gcp_project_cost(project_id)]
                 )
 
             resp_data = get_connectors(

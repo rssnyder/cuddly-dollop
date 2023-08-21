@@ -1,7 +1,12 @@
 from csv import reader
 from sys import argv
 
-from common import CloudAccount
+from common import (
+    CloudAccount,
+    get_aws_account_cost,
+    get_azure_subscription_cost,
+    get_gcp_project_cost,
+)
 
 
 if __name__ == "__main__":
@@ -37,14 +42,37 @@ if __name__ == "__main__":
                     row[7],
                 )
 
+                # print(account.identifier)
                 if account.cloud == "aws":
                     if account.payer_id == aws_first[0]:
                         role_name = aws_first[1]
                     elif account.payer_id == aws_second[0]:
                         role_name = aws_second[1]
+                    elif account.payer_id == "423844416462":
+                        print("CONNECTOR:skipped\t\tlegacy account")
+                        continue
                     else:
                         print(
                             f"CONNECTOR:skipped\t\tpayer id {account.payer_id} for account {account.name} not given"
+                        )
+                        continue
+
+                    if not get_aws_account_cost(account.identifier):
+                        print(
+                            f"CONNECTOR:skipped\t\tno account cost last 90d {account.identifier}"
+                        )
+
+                elif account.cloud == "azure":
+                    if not get_azure_subscription_cost(account.identifier):
+                        print(
+                            f"CONNECTOR:skipped\t\tno account cost last 90d {account.identifier}"
+                        )
+                        continue
+
+                elif account.cloud == "gcp":
+                    if not get_gcp_project_cost(account.identifier):
+                        print(
+                            f"CONNECTOR:skipped\t\tno account cost last 90d {account.identifier}"
                         )
                         continue
 
