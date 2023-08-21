@@ -13,14 +13,13 @@ if __name__ == "__main__":
     # program arguments
     if len(argv) < 3:
         print(
-            f"usage: {argv[0]} [aws master account id #1] [cross account role name #1] [aws master account id #2] [cross account role name #2] [tenant id] [service account email] [csv #1] [csv #2] [csv #3]"
+            f"usage: {argv[0]} [cross account role name] [tenant id] [service account email] [csv #1] [csv #2] [csv #3]"
         )
         exit(1)
 
-    aws_first = argv[1], argv[2]
-    aws_second = argv[3], argv[4]
-    tenant_id = argv[5]
-    service_account_email = argv[6]
+    cross_account_role = argv[1]
+    tenant_id = argv[2]
+    service_account_email = argv[3]
     files = argv[7:]
 
     # loop through file and pull in account information
@@ -44,17 +43,8 @@ if __name__ == "__main__":
 
                 # print(account.identifier)
                 if account.cloud == "aws":
-                    if account.payer_id == aws_first[0]:
-                        role_name = aws_first[1]
-                    elif account.payer_id == aws_second[0]:
-                        role_name = aws_second[1]
-                    elif account.payer_id == "423844416462":
+                    if account.payer_id == "423844416462":
                         print("CONNECTOR:skipped\t\tlegacy account")
-                        continue
-                    else:
-                        print(
-                            f"CONNECTOR:skipped\t\tpayer id {account.payer_id} for account {account.name} not given"
-                        )
                         continue
 
                     if not get_aws_account_cost(account.identifier):
@@ -78,7 +68,10 @@ if __name__ == "__main__":
 
                 print(
                     account.create_connector(
-                        role_name, tenant_id, service_account_email, dry_run=False
+                        cross_account_role,
+                        tenant_id,
+                        service_account_email,
+                        dry_run=False,
                     )
                 )
                 # print(account.delete_connector())
