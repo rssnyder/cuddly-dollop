@@ -13,9 +13,9 @@ HARNESS_PLATFORM_API_KEY: a harness api key
 
 HARNESS_ACCOUNT_ID: your harness account identifier
 
-# cost_catagories.py
+# cost_categories.py
 
-create cost catagories in harness based on csvs for each cloud
+create cost categories in harness based on csvs for each cloud
 
 usage: `python3 cost_catagories.py "Unit Group" BU [csv #1] [csv #2] [csv #3]`
 
