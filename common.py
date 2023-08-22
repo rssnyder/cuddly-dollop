@@ -69,7 +69,7 @@ def get_harness_perspective(cloud: str):
     ].pop()
 
 
-def get_aws_account_cost(account_id: str, days_ago: int = 90) -> int:
+def get_aws_account_cost(account_id: str, days_ago: int = 30) -> int:
     perspective_id = get_harness_perspective("AWS")
 
     # calculate last 90 days
