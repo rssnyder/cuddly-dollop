@@ -55,7 +55,9 @@ def get_connector_status(identifier: str):
 
 if __name__ == "__main__":
     with open(
-        f"connectors_{datetime.now()}.csv".replace(" ", "_"), "w", newline=""
+        f"connectors_{datetime.now()}.csv".replace(" ", "_").replace(":", "_"),
+        "w",
+        newline="",
     ) as csvfile:
         csvwriter = writer(csvfile, delimiter=",")
 

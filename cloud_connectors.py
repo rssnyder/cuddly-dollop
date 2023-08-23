@@ -32,7 +32,12 @@ if __name__ == "__main__":
             next(datareader)
 
             with open(
-                f"cloud_connectors{current_date.strftime('%Y-%m-%d_%H:%M:%S')}.txt", "w"
+                f"cloud_connectors{current_date.strftime('%Y-%m-%d_%H:%M:%S')}.txt".replace(
+                    " ", "_"
+                ).replace(
+                    ":", "_"
+                ),
+                "w",
             ) as file:
                 for row in datareader:
                     # create instance of account with given data
