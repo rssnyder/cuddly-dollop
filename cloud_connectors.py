@@ -42,6 +42,9 @@ if __name__ == "__main__":
                 )
 
                 # print(account.identifier)
+                if account.payer_id == account.identifier:
+                    print("CONNECTOR:skipped\t\tpayer account")
+
                 if account.cloud == "aws":
                     if account.payer_id == "423844416462":
                         print("CONNECTOR:skipped\t\tlegacy account")
