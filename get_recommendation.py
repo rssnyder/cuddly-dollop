@@ -211,7 +211,7 @@ def get_workload(current_date):
     ) as file:
         print("getting WORKLOAD")
 
-        header = "clusterName,namespace,resourceName,containerName,total_Mem,total_Cpu,current_requestMem,current_requestCpu,current_limitMem,current_limitCpu,target_requestMem,target_requestCpu,target_limitMem"
+        header = "clusterName,namespace,resourceName,containerName,total_Cost,total_Savings,current_requestMem,current_requestCpu,current_limitMem,current_limitCpu,target_requestMem,target_requestCpu,target_limitMem"
         file.write(header + "\n")
 
         for recc in get_recommendations("WORKLOAD"):
@@ -226,8 +226,8 @@ def get_workload(current_date):
                         recc.get("namespace"),
                         recc.get("resourceName"),
                         container,
-                        container_info.get("lastDayCost", {}).get("memory"),
-                        container_info.get("lastDayCost", {}).get("cpu"),
+                        recc.get("monthlyCost"),
+                        recc.get("monthlySaving"),
                         container_info.get("current", {})
                         .get("requests", {})
                         .get("memory"),
