@@ -198,13 +198,14 @@ class CloudAccount:
         self.identifier = identifier
 
         if self.cloud == "aws":
+            self.identifier = str(self.identifier)
             self.identifier = self.identifier.replace("-", "")
             if len(self.identifier) < 12:
                 for _ in range(12 - len(self.identifier)):
                     self.identifier = "0" + self.identifier
 
         self.bu = bu
-        self.unit_group = unit_group
+        self.unit_group = str(unit_group)
         self.unit_group_owner = unit_group_owner
 
         self.connector_id = f"{self.cloud}{sub('[^0-9a-zA-Z]+', '_', self.identifier)}"
@@ -356,6 +357,9 @@ class CloudAccount:
             return resp.json()
         else:
             return resp.text
+
+    def __repr__(self):
+        return f"{self.cloud}: {self.payer} ({self.payer_id}) -> {self.name} ({self.identifier}) / {self.bu} / {self.unit_group} / {self.unit_group_owner}"
 
 
 class CostCatagory:
