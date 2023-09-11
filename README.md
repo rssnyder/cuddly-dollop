@@ -19,6 +19,12 @@ create cost categories in harness based on csvs for each cloud
 
 usage: `python3 cost_catagories.py "Unit Group" BU [csv #1] [csv #2] [csv #3]`
 
+# cost_categories_xlsx.py
+
+create cost categories in harness based on xlsx for each cloud
+
+usage: `python3 cost_catagories.py "Unit Group" BU [xlsx #1] [xlsx #2] [xlsx #3]`
+
 # cloud_connectors.py
 
 create cloud connectors based on csv file
