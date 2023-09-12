@@ -69,6 +69,46 @@ def get_harness_perspective(cloud: str):
     ].pop()
 
 
+def get_aws_accounts(days_ago: int = 30, limit: int = 100, offset: int = 0):
+    perspective_id = get_harness_perspective("AWS")
+
+    # calculate last 90 days
+    current_date = datetime.now()
+
+    # Calculate the date from 90 days ago
+    days_ago_delta = timedelta(days=days_ago)
+    date_90_days_ago = current_date - days_ago_delta
+
+    resp = s.post(
+        "https://app.harness.io/ccm/api/costdetails/tabularformat",
+        params={
+            "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+            "perspectiveId": perspective_id,
+            "startTime": date_90_days_ago.strftime("%Y-%m-%d"),
+            "endTime": current_date.strftime("%Y-%m-%d"),
+        },
+        headers={
+            "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+        },
+        json={
+            "groupBy": ["AWS_ACCOUNT"],
+            "limit": limit,
+            "offset": offset,
+        },
+    )
+
+    accounts = []
+    if resp.status_code == 200:
+        to_add = resp.json().get("data", {}).get("data", [])
+        accounts += to_add
+        if len(to_add) == limit:
+            accounts += get_aws_accounts(days_ago, limit, offset + limit)
+    else:
+        print(resp.text)
+
+    return accounts
+
+
 def get_aws_account_cost(account_id: str, days_ago: int = 30) -> int:
     perspective_id = get_harness_perspective("AWS")
 
@@ -101,6 +141,46 @@ def get_aws_account_cost(account_id: str, days_ago: int = 30) -> int:
         return resp.json().get("data", {}).get("value", 0)
     else:
         return 0
+
+
+def get_azure_subscriptions(days_ago: int = 30, limit: int = 100, offset: int = 0):
+    perspective_id = get_harness_perspective("Azure")
+
+    # calculate last 90 days
+    current_date = datetime.now()
+
+    # Calculate the date from 90 days ago
+    days_ago_delta = timedelta(days=days_ago)
+    date_90_days_ago = current_date - days_ago_delta
+
+    resp = s.post(
+        "https://app.harness.io/ccm/api/costdetails/tabularformat",
+        params={
+            "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+            "perspectiveId": perspective_id,
+            "startTime": date_90_days_ago.strftime("%Y-%m-%d"),
+            "endTime": current_date.strftime("%Y-%m-%d"),
+        },
+        headers={
+            "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+        },
+        json={
+            "groupBy": ["AZURE_SUBSCRIPTION_GUID"],
+            "limit": limit,
+            "offset": offset,
+        },
+    )
+
+    accounts = []
+    if resp.status_code == 200:
+        to_add = resp.json().get("data", {}).get("data", [])
+        accounts += to_add
+        if len(to_add) == limit:
+            accounts += get_azure_subscriptions(days_ago, limit, offset + limit)
+    else:
+        print(resp.text)
+
+    return accounts
 
 
 def get_azure_subscription_cost(subscrition_id: str, days_ago: int = 90) -> int:
@@ -139,6 +219,46 @@ def get_azure_subscription_cost(subscrition_id: str, days_ago: int = 90) -> int:
         return resp.json().get("data", {}).get("value", 0)
     else:
         return 0
+
+
+def get_gcp_projects(days_ago: int = 30, limit: int = 100, offset: int = 0):
+    perspective_id = get_harness_perspective("GCP")
+
+    # calculate last 90 days
+    current_date = datetime.now()
+
+    # Calculate the date from 90 days ago
+    days_ago_delta = timedelta(days=days_ago)
+    date_90_days_ago = current_date - days_ago_delta
+
+    resp = s.post(
+        "https://app.harness.io/ccm/api/costdetails/tabularformat",
+        params={
+            "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+            "perspectiveId": perspective_id,
+            "startTime": date_90_days_ago.strftime("%Y-%m-%d"),
+            "endTime": current_date.strftime("%Y-%m-%d"),
+        },
+        headers={
+            "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+        },
+        json={
+            "groupBy": ["GCP_PROJECT"],
+            "limit": limit,
+            "offset": offset,
+        },
+    )
+
+    accounts = []
+    if resp.status_code == 200:
+        to_add = resp.json().get("data", {}).get("data", [])
+        accounts += to_add
+        if len(to_add) == limit:
+            accounts += get_gcp_projects(days_ago, limit, offset + limit)
+    else:
+        print(resp.text)
+
+    return accounts
 
 
 def get_gcp_project_cost(project_id: str, days_ago: int = 90) -> int:
@@ -275,7 +395,7 @@ class CloudAccount:
             raise Exception(f"Unknown cloud {cloud}")
 
         if dry_run:
-            return payload
+            return f"CONNECTOR:updated{spacing}{self.connector_id}{spacing}STATUS{spacing}DRYRUN"
         else:
             # check if the connector already exists in harness
             resp = s.get(
