@@ -13,13 +13,14 @@ if __name__ == "__main__":
     # program arguments
     if len(argv) < 4:
         print(
-            f"usage: {argv[0]} [unit group cc name] [bu cc name] [xlsx #1] [xlsx #2] [xlsx #3]"
+            f"usage: {argv[0]} [unit group cc name] [owner cc name] [bu cc name] [xlsx #1] [xlsx #2] [xlsx #3]"
         )
         exit(1)
 
     unit_group_cc_name = argv[1]
-    bu_cc_name = argv[2]
-    files = argv[3:]
+    owner_cc_name = argv[2]
+    bu_cc_name = argv[3]
+    files = argv[4:]
 
     # check that all clouds were supplied
     if len(files) < 3:
@@ -28,6 +29,7 @@ if __name__ == "__main__":
 
     # storage for different clouds
     unit_groups = CostCatagory(unit_group_cc_name)
+    owners = CostCatagory(owner_cc_name)
     bus = CostCatagory(bu_cc_name)
 
     # loop through file and pull in account information
@@ -49,9 +51,11 @@ if __name__ == "__main__":
             print(account)
 
             unit_groups.add(account.unit_group, account)
+            owners.add(account.unit_group_owner, account)
             bus.add(account.bu, account)
 
     print(unit_group_cc_name, unit_groups.update())
+    print(owner_cc_name, owners.update())
     print(bu_cc_name, bus.update())
 
     sleep(5)
@@ -63,3 +67,5 @@ if __name__ == "__main__":
     print(unit_groups)
     print()
     print(bus)
+    print()
+    print(owners)
