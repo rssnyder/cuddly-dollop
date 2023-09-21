@@ -48,7 +48,6 @@ if __name__ == "__main__":
                 row["Costcenter Unit Group"],
                 row["Costcenter Unit Group Owner"],
             )
-            print(account)
 
             unit_groups.add(account.unit_group, account)
             owners.add(account.unit_group_owner, account)

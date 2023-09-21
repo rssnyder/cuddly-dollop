@@ -504,15 +504,17 @@ class CostCatagory:
         return result
 
     def add(self, bucket_name: str, new: CloudAccount):
+        clean_name = Bucket.clean_name(bucket_name)
+
         # check bucket exists and add
         if not [
             x.add(new.cloud, new.identifier)
             for x in self.buckets
-            if x.name == bucket_name
+            if x.name == clean_name
         ]:
-            self.buckets.append(Bucket(bucket_name).add(new.cloud, new.identifier))
+            self.buckets.append(Bucket(clean_name).add(new.cloud, new.identifier))
 
-        return bucket_name
+        return clean_name
 
     def get_cc(self) -> dict:
         try:
@@ -556,10 +558,13 @@ class CostCatagory:
 
 class Bucket:
     def __init__(self, name: str):
-        self.name = name
+        self.name = "".join(x for x in name if x.isalnum() or x in [" ", "(", ")"])
         self.aws = []
         self.azure = []
         self.gcp = []
+
+    def clean_name(name: str):
+        return "".join(x for x in name if x.isalnum() or x in [" ", "(", ")"])
 
     def __repr__(self):
         result = "\n" + self.name
