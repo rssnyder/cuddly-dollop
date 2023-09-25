@@ -558,13 +558,13 @@ class CostCatagory:
 
 class Bucket:
     def __init__(self, name: str):
-        self.name = "".join(x for x in name if x.isalnum() or x in [" ", "(", ")"])
+        self.name = name.replace("'", "")
         self.aws = []
         self.azure = []
         self.gcp = []
 
     def clean_name(name: str):
-        return "".join(x for x in name if x.isalnum() or x in [" ", "(", ")"])
+        return name.replace("'", "")
 
     def __repr__(self):
         result = "\n" + self.name
