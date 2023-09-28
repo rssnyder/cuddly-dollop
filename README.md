@@ -25,6 +25,12 @@ create cost categories in harness based on xlsx for each cloud
 
 usage: `python3 cost_catagories.py "Unit Group" Owners BU [xlsx #1] [xlsx #2] [xlsx #3]`
 
+# core_tags_cost_category.py
+
+create the core tags cost category
+
+usage: `usage: core_tags_cost_catagory.py [core tags cc name] [xlsx]`
+
 # cloud_connectors.py
 
 create cloud connectors based on csv file

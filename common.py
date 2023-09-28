@@ -555,6 +555,39 @@ class CostCatagory:
 
             return resp.json()
 
+    def update_cost_targets(self, cost_targets: list):
+        if self.get_cc().get("uuid"):
+            resp = s.put(
+                "https://app.harness.io/gateway/ccm/api/business-mapping",
+                params={
+                    "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+                },
+                json={
+                    "accountId": getenv("HARNESS_ACCOUNT_ID"),
+                    "name": self.name,
+                    "uuid": self.uuid,
+                    "costTargets": cost_targets,
+                    "unallocatedCost": {
+                        "strategy": "DISPLAY_NAME",
+                        "label": "Unattributed",
+                        "sharingStrategy": None,
+                        "splits": None,
+                    },
+                    "dataSources": ["AWS"],
+                },
+            )
+
+            try:
+                resp.raise_for_status()
+            except exceptions.HTTPError:
+                return resp.text
+
+            return resp.json()
+
 
 class Bucket:
     def __init__(self, name: str):
