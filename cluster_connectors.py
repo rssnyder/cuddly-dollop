@@ -87,6 +87,10 @@ def create_k8s_ccm_connector(identifier: str, k8s_connector: str):
 if __name__ == "__main__":
     resp = get_delegates()
 
+    print(
+        f'found {len(resp.json().get("resource", {}).get("delegateGroupDetails", []))} delegates'
+    )
+
     for group in resp.json().get("resource", {}).get("delegateGroupDetails", []):
         identifier = group.get("delegateGroupIdentifier")
         name = group.get("groupName")
