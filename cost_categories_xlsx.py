@@ -1,6 +1,6 @@
 from csv import reader
 from os import getenv
-from sys import argv
+from sys import argv, exit
 from time import sleep
 
 import pandas as pd
@@ -53,18 +53,31 @@ if __name__ == "__main__":
             owners.add(account.unit_group_owner, account)
             bus.add(account.bu, account)
 
-    print(unit_group_cc_name, unit_groups.update())
-    print(owner_cc_name, owners.update())
-    print(bu_cc_name, bus.update())
-
-    sleep(5)
-
-    print("Here is what we did...")
-
-    sleep(5)
-
+    print("\n\n\n\n==============")
     print(unit_groups)
-    print()
-    print(bus)
-    print()
+    print(f"Please see the above for the new {unit_group_cc_name}")
+    val = input("Should we apply this update? (yes/no): ")
+    if val == "yes":
+        print(unit_group_cc_name, unit_groups.update())
+
+    val = input("Should we continue? (yes/no): ")
+    if val != "yes":
+        exit(0)
+
+    print("\n\n\n\n==============")
     print(owners)
+    print(f"Please see the above for the new {owner_cc_name}")
+    val = input("Should we apply this update? (yes/no): ")
+    if val == "yes":
+        print(owner_cc_name, owners.update())
+
+    val = input("Should we continue? (yes/no): ")
+    if val != "yes":
+        exit(0)
+
+    print("\n\n\n\n==============")
+    print(bus)
+    print(f"Please see the above for the new {bu_cc_name}")
+    val = input("Should we apply this update? (yes/no): ")
+    if val == "yes":
+        print(bu_cc_name, bus.update())
