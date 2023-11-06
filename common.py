@@ -550,8 +550,8 @@ class CostCatagory:
 
             try:
                 resp.raise_for_status()
-            except exceptions.HTTPError:
-                return resp.text
+            except exceptions.HTTPError as e:
+                return f"{resp.text}: {str(e)}"
 
             return resp.json()
 
