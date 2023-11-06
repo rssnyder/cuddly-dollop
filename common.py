@@ -554,6 +554,8 @@ class CostCatagory:
                 return f"{resp.text}: {str(e)}"
 
             return resp.json()
+        else:
+            return f"You have entered an invalid cost center: {self.name}"
 
     def update_cost_targets(self, cost_targets: list):
         if self.get_cc().get("uuid"):
