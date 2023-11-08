@@ -36,7 +36,7 @@ if __name__ == "__main__":
                         file.write(
                             ",".join(
                                 [
-                                    item.get("name"),
+                                    item.get("name").replace("Â", " -"),
                                     condition.get("viewField", {}).get("identifier"),
                                     account,
                                 ]
