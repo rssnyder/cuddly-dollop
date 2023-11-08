@@ -308,7 +308,7 @@ class CloudAccount:
         unit_group_owner: str,
     ):
         cloud_fmt = cloud.lower()
-        if cloud_fmt not in ["aws", "azure", "gcp"]:
+        if cloud_fmt not in ["aws", "azure", "gcp", "costcenter"]:
             raise Exception(f"Unknown cloud {cloud}")
 
         self.cloud = cloud_fmt
@@ -328,7 +328,7 @@ class CloudAccount:
         self.unit_group = str(unit_group)
         self.unit_group_owner = unit_group_owner
 
-        self.connector_id = f"{self.cloud}{sub('[^0-9a-zA-Z]+', '_', self.identifier)}"
+        self.connector_id = f"{self.cloud}{sub('[^0-9a-zA-Z]+', '_', str(self.identifier))}"
 
     def create_connector(
         self,
@@ -503,16 +503,16 @@ class CostCatagory:
         )
         return result
 
-    def add(self, bucket_name: str, new: CloudAccount):
+    def add(self, bucket_name: str, cloud: str, identifier: str, label: str = None):
         clean_name = Bucket.clean_name(bucket_name)
 
         # check bucket exists and add
         if not [
-            x.add(new.cloud, new.identifier)
+            x.add(cloud, identifier)
             for x in self.buckets
             if x.name == clean_name
         ]:
-            self.buckets.append(Bucket(clean_name).add(new.cloud, new.identifier))
+            self.buckets.append(Bucket(clean_name).add(cloud, identifier))
 
         return clean_name
 
@@ -592,20 +592,24 @@ class CostCatagory:
 
 
 class Bucket:
-    def __init__(self, name: str):
+    def __init__(self, name: str, label: str = None):
         self.name = name.replace("'", "")
         self.aws = []
         self.azure = []
         self.gcp = []
+        self.costcenter = set()
+
+        self.label = label
 
     def clean_name(name: str):
         return name.replace("'", "")
 
     def __repr__(self):
-        result = "\n" + self.name
-        result += "\nAWS: " + str(self.aws)
-        result += "\nAzure: " + str(self.azure)
-        result += "\nGCP: " + str(self.gcp)
+        result = f"\n{self.name}"
+        result += f"\nAWS: {str(self.aws)}"
+        result += f"\nAzure: {str(self.azure)}"
+        result += f"\nGCP: {str(self.gcp)}"
+        result += f"\nCostCenter {self.label}: {str(self.costcenter)}"
 
         return result
 
@@ -616,6 +620,8 @@ class Bucket:
             self.azure.append(identifier)
         elif cloud == "gcp":
             self.gcp.append(identifier)
+        elif cloud == "costcenter":
+            self.costcenter.add(identifier)
         else:
             raise Exception(f"Unknown cloud {self.cloud}")
 
@@ -667,6 +673,7 @@ class Bucket:
                     ]
                 }
             )
+
         if self.gcp:
             payload["rules"].append(
                 {
@@ -685,5 +692,27 @@ class Bucket:
                     ]
                 }
             )
+        
+        if self.label and self.costcenter:
+            for costcenter in self.costcenter:
+                payload["rules"].append(
+                    {
+                        "viewConditions": [
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": "labels.value",
+                                    "fieldName": self.label,
+                                    "identifier": "LABEL",
+                                    "identifierName": "label"
+                                },
+                                "viewOperator": "IN",
+                                "values": [
+                                    costcenter
+                                ]
+                            }
+                        ]
+                    }
+                )
 
         return payload
