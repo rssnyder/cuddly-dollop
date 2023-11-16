@@ -503,6 +503,63 @@ class CostCatagory:
         )
         return result
 
+    def bootstrap(self):
+        resp = s.post(
+            "https://app.harness.io/gateway/ccm/api/business-mapping",
+            params={
+                "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+            },
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+            },
+            json={
+                "accountId": getenv("HARNESS_ACCOUNT_ID"),
+                "name": self.name,
+                "costTargets": [
+                    {
+                        "name": "empty",
+                        "rules": [
+                            {
+                                "viewConditions": [
+                                    {
+                                        "type": "VIEW_ID_CONDITION",
+                                        "viewField": {
+                                            "fieldId": "labels.value",
+                                            "fieldName": "empty",
+                                            "identifierName": "label",
+                                            "identifier": "LABEL",
+                                        },
+                                        "viewOperator": "IN",
+                                        "values": ["empty"],
+                                    }
+                                ]
+                            }
+                        ],
+                    }
+                ],
+                "sharedCosts": [],
+                "unallocatedCost": {
+                    "label": "Unattributed",
+                    "strategy": "DISPLAY_NAME",
+                },
+            },
+        )
+
+        try:
+            resp.raise_for_status()
+        except exceptions.HTTPError as e:
+            print(f"{resp.text}: {str(e)}")
+            return False
+
+        if resp.json().get("resource", {}).get("uuid"):
+            self.uuid = resp.json().get("resource", {}).get("uuid")
+            print(f"created new cc: {self.name}")
+            return True
+        else:
+            return f"unable to create cc: {resp.text}"
+            return False
+
     def add(self, bucket_name: str, new: CloudAccount):
         clean_name = Bucket.clean_name(bucket_name)
 
@@ -522,8 +579,15 @@ class CostCatagory:
         except IndexError:
             return {}
 
-    def update(self):
+    def get_uuid(self):
         if self.get_cc().get("uuid"):
+            return self.get_cc().get("uuid")
+        else:
+            if self.bootstrap():
+                return self.uuid
+
+    def update(self):
+        if self.get_uuid():
             resp = s.put(
                 "https://app.harness.io/gateway/ccm/api/business-mapping",
                 params={
@@ -558,7 +622,7 @@ class CostCatagory:
             return f"You have entered an invalid cost center: {self.name}"
 
     def update_cost_targets(self, cost_targets: list):
-        if self.get_cc().get("uuid"):
+        if self.get_uuid():
             resp = s.put(
                 "https://app.harness.io/gateway/ccm/api/business-mapping",
                 params={
@@ -667,6 +731,7 @@ class Bucket:
                     ]
                 }
             )
+
         if self.gcp:
             payload["rules"].append(
                 {
