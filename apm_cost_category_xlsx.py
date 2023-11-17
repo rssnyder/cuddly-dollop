@@ -42,10 +42,11 @@ if __name__ == "__main__":
                 bucket_name = "No Entry"
 
             # add tag to cc/bucket
+            tags = [f"(?i){row.iloc[0].lower()}"]
             if bucket_name in cost_catagories[cc_name]:
-                cost_catagories[cc_name][bucket_name].append(row.iloc[0])
+                cost_catagories[cc_name][bucket_name].extend(tags)
             else:
-                cost_catagories[cc_name].update({bucket_name: [row.iloc[0]]})
+                cost_catagories[cc_name].update({bucket_name: tags})
 
     for cc in cost_catagories:
         # create cc object
@@ -70,7 +71,7 @@ if __name__ == "__main__":
                                         "identifier": "LABEL",
                                         "identifierName": "label",
                                     },
-                                    "viewOperator": "IN",
+                                    "viewOperator": "LIKE",
                                     "values": cost_catagories[cc][bucket],
                                 }
                             ]
@@ -85,7 +86,7 @@ if __name__ == "__main__":
                                         "identifier": "LABEL",
                                         "identifierName": "label",
                                     },
-                                    "viewOperator": "IN",
+                                    "viewOperator": "LIKE",
                                     "values": cost_catagories[cc][bucket],
                                 }
                             ]
