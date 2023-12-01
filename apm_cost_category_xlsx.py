@@ -43,9 +43,9 @@ if __name__ == "__main__":
 
             # add tag to cc/bucket
             if bucket_name in cost_catagories[cc_name]:
-                cost_catagories[cc_name][bucket_name].append(row.iloc[0])
+                cost_catagories[cc_name][bucket_name].append(str(row.iloc[0]))
             else:
-                cost_catagories[cc_name].update({bucket_name: [row.iloc[0]]})
+                cost_catagories[cc_name].update({bucket_name: [str(row.iloc[0])]})
 
     for cc in cost_catagories:
         # create cc object
