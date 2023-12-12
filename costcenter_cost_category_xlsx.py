@@ -2,6 +2,7 @@ from csv import reader
 from os import getenv
 from sys import argv, exit
 from time import sleep
+from re import sub
 
 import pandas as pd
 import numpy as np
@@ -16,7 +17,6 @@ if __name__ == "__main__":
         exit(1)
 
     xlsx = argv[1]
-
 
     sheet = pd.read_excel(xlsx)
 
@@ -36,6 +36,7 @@ if __name__ == "__main__":
             # no spaces in cc names
             cc_name = column.replace(" ", "")
             bucket_name = str(row[column]).replace(".0", "")
+            bucket_name = sub("[^0-9a-zA-Z@()., ']+", "", bucket_name)
             if bucket_name == "nan":
                 bucket_name = "No Entry"
 
