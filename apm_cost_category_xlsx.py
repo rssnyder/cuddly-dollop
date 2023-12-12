@@ -38,7 +38,7 @@ if __name__ == "__main__":
             # no spaces in cc names
             cc_name = column.replace(" ", "")
             bucket_name = str(row[column]).replace(".0", "")
-            bucket_name = sub("[^0-9a-zA-Z@()., ']+", "", bucket_name)
+            bucket_name = sub("[^0-9a-zA-Z-@()., ']+", "", bucket_name)
             if bucket_name == "nan":
                 bucket_name = "No Entry"
 
