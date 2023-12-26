@@ -13,14 +13,15 @@ if __name__ == "__main__":
     # program arguments
     if len(argv) < 4:
         print(
-            f"usage: {argv[0]} [unit group cc name] [owner cc name] [bu cc name] [xlsx #1] [xlsx #2] [xlsx #3]"
+            f"usage: {argv[0]} [unit group cc name] [owner cc name] [bu cc name] [env cc name] [xlsx #1] [xlsx #2] [xlsx #3]"
         )
         exit(1)
 
     unit_group_cc_name = argv[1]
     owner_cc_name = argv[2]
     bu_cc_name = argv[3]
-    files = argv[4:]
+    env_cc_name = argv[4]
+    files = argv[5:]
 
     # check that all clouds were supplied
     if len(files) < 3:
@@ -31,6 +32,7 @@ if __name__ == "__main__":
     unit_groups = CostCatagory(unit_group_cc_name)
     owners = CostCatagory(owner_cc_name)
     bus = CostCatagory(bu_cc_name)
+    envs = CostCatagory(env_cc_name)
 
     # loop through file and pull in account information
     for file_csv in files:
@@ -47,11 +49,13 @@ if __name__ == "__main__":
                 row.BU,
                 row["Costcenter Unit Group"],
                 row["Costcenter Unit Group Owner"],
+                row["Environment"],
             )
 
             unit_groups.add(account.unit_group, account)
             owners.add(account.unit_group_owner, account)
             bus.add(account.bu, account)
+            envs.add(account.env, account)
 
     print("\n\n\n\n==============")
     print(unit_groups)
@@ -81,3 +85,14 @@ if __name__ == "__main__":
     val = input("Should we apply this update? (yes/no): ")
     if val == "yes":
         print(bu_cc_name, bus.update())
+
+    val = input("Should we continue? (yes/no): ")
+    if val != "yes":
+        exit(0)
+
+    print("\n\n\n\n==============")
+    print(envs)
+    print(f"Please see the above for the new {env_cc_name}")
+    val = input("Should we apply this update? (yes/no): ")
+    if val == "yes":
+        print(env_cc_name, envs.update())
