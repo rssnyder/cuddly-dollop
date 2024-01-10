@@ -65,7 +65,7 @@ if __name__ == "__main__":
                                     "type": "VIEW_ID_CONDITION",
                                     "viewField": {
                                         "fieldId": "labels.value",
-                                        "fieldName": "user_costcenter",
+                                        "fieldName": "user_costcenter_3",
                                         "identifier": "LABEL",
                                         "identifierName": "label",
                                     },
