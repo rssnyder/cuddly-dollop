@@ -32,13 +32,12 @@ if __name__ == "__main__":
         for item in cc.get_cc().get("costTargets"):
             for rule in item.get("rules", []):
                 for condition in rule.get("viewConditions", []):
-                    print(condition)
                     if condition.get("viewField", {}).get("identifier") == "LABEL":
                         for label in condition.get("values", []):
                             file.write(
                                 ",".join(
                                     [
-                                        item.get("name").replace("Â", " -"),
+                                        f"'{item.get('name').replace('Â', 'A')}",
                                         condition.get("viewField", {}).get("fieldName"),
                                         label,
                                     ]
@@ -50,7 +49,7 @@ if __name__ == "__main__":
                             file.write(
                                 ",".join(
                                     [
-                                        item.get("name").replace("Â", " -"),
+                                        f"'{item.get('name').replace('Â', 'A')}",
                                         condition.get("viewField", {}).get(
                                             "identifier"
                                         ),
