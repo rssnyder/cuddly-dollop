@@ -37,7 +37,7 @@ if __name__ == "__main__":
                             file.write(
                                 ",".join(
                                     [
-                                        f"'{item.get('name').replace('Â', 'A')}",
+                                        f'"{item.get("name").replace("Â", "A")}"',
                                         condition.get("viewField", {}).get("fieldName"),
                                         label,
                                     ]
@@ -49,7 +49,7 @@ if __name__ == "__main__":
                             file.write(
                                 ",".join(
                                     [
-                                        f"'{item.get('name').replace('Â', 'A')}",
+                                        f'"{item.get("name").replace("Â", "A")}"',
                                         condition.get("viewField", {}).get(
                                             "identifier"
                                         ),
