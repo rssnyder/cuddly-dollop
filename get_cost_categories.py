@@ -32,14 +32,30 @@ if __name__ == "__main__":
         for item in cc.get_cc().get("costTargets"):
             for rule in item.get("rules", []):
                 for condition in rule.get("viewConditions", []):
-                    for account in condition.get("values", []):
-                        file.write(
-                            ",".join(
-                                [
-                                    item.get("name").replace("Â", " -"),
-                                    condition.get("viewField", {}).get("identifier"),
-                                    account,
-                                ]
+                    print(condition)
+                    if condition.get("viewField", {}).get("identifier") == "LABEL":
+                        for label in condition.get("values", []):
+                            file.write(
+                                ",".join(
+                                    [
+                                        item.get("name").replace("Â", " -"),
+                                        condition.get("viewField", {}).get("fieldName"),
+                                        label,
+                                    ]
+                                )
+                                + "\n"
                             )
-                            + "\n"
-                        )
+                    else:
+                        for account in condition.get("values", []):
+                            file.write(
+                                ",".join(
+                                    [
+                                        item.get("name").replace("Â", " -"),
+                                        condition.get("viewField", {}).get(
+                                            "identifier"
+                                        ),
+                                        account,
+                                    ]
+                                )
+                                + "\n"
+                            )
