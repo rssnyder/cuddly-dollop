@@ -59,7 +59,7 @@ if __name__ == "__main__":
             owners.add(account.unit_group_owner, account)
             bus.add(account.bu, account)
             envs.add(account.env, account)
-            buids.add(account.env, account)
+            buids.add(account.buid, account)
 
     print("\n\n\n\n==============")
     print(unit_groups)
