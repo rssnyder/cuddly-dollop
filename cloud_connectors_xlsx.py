@@ -18,14 +18,25 @@ if __name__ == "__main__":
     # program arguments
     if len(argv) < 3:
         print(
-            f"usage: {argv[0]} [cross account role name] [tenant id] [service account email] [xlsx #1] [xlsx #2] [xlsx #3]"
+            f"usage: {argv[0]} [dry run] [cross account role name] [tenant id] [service account email] [xlsx #1] [xlsx #2] [xlsx #3]"
         )
         exit(1)
 
-    cross_account_role = argv[1]
-    tenant_id = argv[2]
-    service_account_email = argv[3]
-    files = argv[4:]
+    dry_run = argv[1]
+    if dry_run.lower() == "dryrun":
+        dry_run = True
+        print(
+            "DRYRUN:true\t\twe are running in dry run mode, nothing will be changed in harness"
+        )
+    else:
+        dry_run = False
+        print(
+            "DRYRUN:false\t\twe are NOT running in dry run mode, changes will be made in harness"
+        )
+    cross_account_role = argv[2]
+    tenant_id = argv[3]
+    service_account_email = argv[4]
+    files = argv[5:]
 
     with open(
         f"cloud_connectors{current_date.strftime('%Y-%m-%d_%H:%M:%S')}.txt".replace(
@@ -45,9 +56,6 @@ if __name__ == "__main__":
                     row["Payer account_name"],
                     row.vendor_account_identifier,
                     row.vendor_account_name,
-                    row.BU,
-                    row["Costcenter Unit Group"],
-                    row["Costcenter Unit Group Owner"],
                 )
 
                 # print(account.identifier)
@@ -63,6 +71,7 @@ if __name__ == "__main__":
                         print(
                             f"CONNECTOR:skipped\t\tno account cost last 90d {account.identifier}"
                         )
+                        continue
 
                 elif account.cloud == "azure":
                     if not get_azure_subscription_cost(account.identifier):
@@ -82,7 +91,7 @@ if __name__ == "__main__":
                     cross_account_role,
                     tenant_id,
                     service_account_email,
-                    dry_run=True,
+                    dry_run=dry_run,
                 )
 
                 file.write(result + "\n")

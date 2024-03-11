@@ -100,7 +100,7 @@ if __name__ == "__main__":
     val = input("Should we apply this update? (yes/no): ")
     if val == "yes":
         print(env_cc_name, envs.update())
-    
+
     print("\n\n\n\n==============")
     print(buids)
     print(f"Please see the above for the new {buid_cc_name}")
