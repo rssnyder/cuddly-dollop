@@ -18,22 +18,15 @@ class AzureAccount:
         sub_id: str,
         sub_name: str,
         rg_name: str,
-        cost_center: str,
-        environment: str,
-        cost_center_manager: str,
-        bu: str,
-        bu_id: str,
     ):
         self.payer_id = payer_id
         self.payer = payer
         self.sub_id = sub_id
         self.sub_name = sub_name
         self.rg_name = rg_name
-        self.cost_center = cost_center
-        self.environment = environment
-        self.cost_center_manager = cost_center_manager
-        self.bu = bu
-        self.bu_id = bu_id
+
+    def __dict__():
+        return {"subscription": sub_id, "resource_group": rg_name}
 
 
 if __name__ == "__main__":
@@ -53,6 +46,10 @@ if __name__ == "__main__":
 
     sheet = pd.read_excel(file_csv, keep_default_na=False)
 
+    cost_catagories = {}
+    for column in sheet.columns[6:]:
+        cost_catagories.update({column: {}})
+
     for i, row in sheet.iterrows():
         # create instance of account with given data
         account = AzureAccount(
@@ -61,329 +58,67 @@ if __name__ == "__main__":
             row["Subscription_ID"],
             row["Subscription_name"],
             row["Resource_Group"],
-            row["Azure_RG_Costcenter"],
-            row["Azure_RG_Environment"],
-            row["Azure_RG_Costcenter_Manager"],
-            row["Azure_RG_BU"],
-            row["Azure_RG_BUid"],
         )
 
-        if account.cost_center not in cost_center_cc:
-            cost_center_cc[account.cost_center] = [account]
-        else:
-            cost_center_cc[account.cost_center].append(account)
+        for cost_catagory in cost_catagories:
+            bucket = str(row[cost_catagory])
+            if bucket not in cost_catagory:
+                cost_catagories[cost_catagory][bucket] = [account]
+            else:
+                cost_catagories[cost_catagory][bucket].append(account)
 
-        if account.environment not in environment_cc:
-            environment_cc[account.environment] = [account]
-        else:
-            environment_cc[account.environment].append(account)
+    for cost_catagory in cost_catagories.keys():
+        cc = CostCatagory(cost_catagory)
+        cost_targets = []
 
-        if account.cost_center_manager not in cost_center_manager_cc:
-            cost_center_manager_cc[account.cost_center_manager] = [account]
-        else:
-            cost_center_manager_cc[account.cost_center_manager].append(account)
+        for bucket in cost_catagories[cost_catagory]:
+            rules = []
+            for rg in cost_catagories[cost_catagory][bucket]:
+                rules.append(
+                    {
+                        "viewConditions": [
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": "azureSubscriptionGuid",
+                                    "fieldName": "Subscription id",
+                                    "identifier": "AZURE",
+                                    "identifierName": "Azure",
+                                },
+                                "viewOperator": "IN",
+                                "values": [rg.sub_id],
+                            },
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": "azureResourceGroup",
+                                    "fieldName": "Resource group name",
+                                    "identifier": "AZURE",
+                                    "identifierName": "Azure",
+                                },
+                                "viewOperator": "IN" if rg.rg_name else "NULL",
+                                "values": [rg.rg_name if rg.rg_name else ""],
+                            },
+                        ]
+                    }
+                )
 
-        if account.bu not in bu_cc:
-            bu_cc[account.bu] = [account]
-        else:
-            bu_cc[account.bu].append(account)
-
-        if account.bu_id not in bu_id_cc:
-            bu_id_cc[account.bu_id] = [account]
-        else:
-            bu_id_cc[account.bu_id].append(account)
-
-    # Azure_RG_Costcenter
-    cost_catagory = CostCatagory("Azure_RG_Costcenter")
-    cost_targets = []
-
-    for bucket in cost_center_cc:
-        rules = []
-        for rg in cost_center_cc[bucket]:
-            rules.append(
+            cost_targets.append(
                 {
-                    "viewConditions": [
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureSubscriptionGuid",
-                                "fieldName": "Subscription id",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
-                            },
-                            "viewOperator": "IN",
-                            "values": [rg.sub_id],
-                        },
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureResourceGroup",
-                                "fieldName": "Resource group name",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
-                            },
-                            "viewOperator": "IN" if rg.rg_name else "NULL",
-                            "values": [rg.rg_name if rg.rg_name else ""],
-                        },
-                    ]
+                    "name": bucket,
+                    "rules": rules,
                 }
             )
 
-        # create bucket with all tags
-        cost_targets.append(
-            {
-                "name": bucket,
-                "rules": rules,
-            }
+        print("\t", dumps(cost_targets, indent=4))
+
+        print(
+            f"\n\n\n\n==============\nPlease see the above for the new {cc.name} cost catagory"
         )
+        val = input("Should we apply this update? (yes/no): ")
+        if val == "yes":
+            print(cc.update_cost_targets(cost_targets))
 
-    # print(dumps(cost_targets, indent=4))
-
-    print("\t", dumps(cost_targets, indent=4))
-
-    print(
-        f"\n\n\n\n==============\nPlease see the above for the new {cost_catagory.name} cost catagory"
-    )
-    val = input("Should we apply this update? (yes/no): ")
-    if val == "yes":
-        print(cost_catagory.update_cost_targets(cost_targets))
-
-    val = input("Should we continue? (yes/no): ")
-    if val != "yes":
-        exit(0)
-
-    # Azure_RG_Environment
-    cost_catagory = CostCatagory("Azure_RG_Environment")
-    cost_targets = []
-
-    for bucket in environment_cc:
-        rules = []
-        for rg in environment_cc[bucket]:
-            rules.append(
-                {
-                    "viewConditions": [
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureSubscriptionGuid",
-                                "fieldName": "Subscription id",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
-                            },
-                            "viewOperator": "IN",
-                            "values": [rg.sub_id],
-                        },
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureResourceGroup",
-                                "fieldName": "Resource group name",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
-                            },
-                            "viewOperator": "IN" if rg.rg_name else "NULL",
-                            "values": [rg.rg_name if rg.rg_name else ""],
-                        },
-                    ]
-                }
-            )
-
-        # create bucket with all tags
-        cost_targets.append(
-            {
-                "name": bucket,
-                "rules": rules,
-            }
-        )
-
-    # print(dumps(cost_targets, indent=4))
-
-    print("\t", dumps(cost_targets, indent=4))
-
-    print(
-        f"\n\n\n\n==============\nPlease see the above for the new {cost_catagory.name} cost catagory"
-    )
-    val = input("Should we apply this update? (yes/no): ")
-    if val == "yes":
-        print(cost_catagory.update_cost_targets(cost_targets))
-
-    val = input("Should we continue? (yes/no): ")
-    if val != "yes":
-        exit(0)
-
-    # Azure_RG_Costcenter_Manager
-    cost_catagory = CostCatagory("Azure_RG_Costcenter_Manager")
-    cost_targets = []
-
-    for bucket in cost_center_manager_cc:
-        rules = []
-        for rg in cost_center_manager_cc[bucket]:
-            rules.append(
-                {
-                    "viewConditions": [
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureSubscriptionGuid",
-                                "fieldName": "Subscription id",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
-                            },
-                            "viewOperator": "IN",
-                            "values": [rg.sub_id],
-                        },
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureResourceGroup",
-                                "fieldName": "Resource group name",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
-                            },
-                            "viewOperator": "IN" if rg.rg_name else "NULL",
-                            "values": [rg.rg_name if rg.rg_name else ""],
-                        },
-                    ]
-                }
-            )
-
-        # create bucket with all tags
-        cost_targets.append(
-            {
-                "name": bucket,
-                "rules": rules,
-            }
-        )
-
-    # print(dumps(cost_targets, indent=4))
-
-    print("\t", dumps(cost_targets, indent=4))
-
-    print(
-        f"\n\n\n\n==============\nPlease see the above for the new {cost_catagory.name} cost catagory"
-    )
-    val = input("Should we apply this update? (yes/no): ")
-    if val == "yes":
-        print(cost_catagory.update_cost_targets(cost_targets))
-
-    val = input("Should we continue? (yes/no): ")
-    if val != "yes":
-        exit(0)
-
-    # Azure_RG_BU
-    cost_catagory = CostCatagory("Azure_RG_BU")
-    cost_targets = []
-
-    for bucket in bu_cc:
-        rules = []
-        for rg in bu_cc[bucket]:
-            rules.append(
-                {
-                    "viewConditions": [
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureSubscriptionGuid",
-                                "fieldName": "Subscription id",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
-                            },
-                            "viewOperator": "IN",
-                            "values": [rg.sub_id],
-                        },
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureResourceGroup",
-                                "fieldName": "Resource group name",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
-                            },
-                            "viewOperator": "IN" if rg.rg_name else "NULL",
-                            "values": [rg.rg_name if rg.rg_name else ""],
-                        },
-                    ]
-                }
-            )
-
-        # create bucket with all tags
-        cost_targets.append(
-            {
-                "name": bucket,
-                "rules": rules,
-            }
-        )
-
-    # print(dumps(cost_targets, indent=4))
-
-    print("\t", dumps(cost_targets, indent=4))
-
-    print(
-        f"\n\n\n\n==============\nPlease see the above for the new {cost_catagory.name} cost catagory"
-    )
-    val = input("Should we apply this update? (yes/no): ")
-    if val == "yes":
-        print(cost_catagory.update_cost_targets(cost_targets))
-
-    val = input("Should we continue? (yes/no): ")
-    if val != "yes":
-        exit(0)
-
-    # Azure_RG_BUid
-    cost_catagory = CostCatagory("Azure_RG_BUid")
-    cost_targets = []
-
-    for bucket in bu_id_cc:
-        rules = []
-        for rg in bu_id_cc[bucket]:
-            rules.append(
-                {
-                    "viewConditions": [
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureSubscriptionGuid",
-                                "fieldName": "Subscription id",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
-                            },
-                            "viewOperator": "IN",
-                            "values": [rg.sub_id],
-                        },
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureResourceGroup",
-                                "fieldName": "Resource group name",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
-                            },
-                            "viewOperator": "IN" if rg.rg_name else "NULL",
-                            "values": [rg.rg_name if rg.rg_name else ""],
-                        },
-                    ]
-                }
-            )
-
-        # create bucket with all tags
-        cost_targets.append(
-            {
-                "name": bucket,
-                "rules": rules,
-            }
-        )
-
-    # print(dumps(cost_targets, indent=4))
-
-    print("\t", dumps(cost_targets, indent=4))
-
-    print(
-        f"\n\n\n\n==============\nPlease see the above for the new {cost_catagory.name} cost catagory"
-    )
-    val = input("Should we apply this update? (yes/no): ")
-    if val == "yes":
-        print(cost_catagory.update_cost_targets(cost_targets))
-
-    val = input("Should we continue? (yes/no): ")
-    if val != "yes":
-        exit(0)
+        val = input("Should we continue? (yes/no): ")
+        if val != "yes":
+            exit(0)
