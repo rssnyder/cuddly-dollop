@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
         for cost_catagory in cost_catagories:
             bucket = str(row[cost_catagory])
-            if bucket not in cost_catagory:
+            if bucket not in cost_catagories[cost_catagory]:
                 cost_catagories[cost_catagory][bucket] = [account]
             else:
                 cost_catagories[cost_catagory][bucket].append(account)
