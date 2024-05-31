@@ -302,6 +302,7 @@ class CloudAccount:
         payer_id: str,
         payer: str,
         identifier: str,
+        rg_identifier: str,
         name: str,
         bu: str = None,
         unit_group: str = None,
@@ -318,6 +319,7 @@ class CloudAccount:
         self.payer = payer
         self.name = name
         self.identifier = identifier
+        self.rg_identifier = rg_identifier
 
         if self.cloud == "aws":
             self.identifier = str(self.identifier)
@@ -326,11 +328,11 @@ class CloudAccount:
                 for _ in range(12 - len(self.identifier)):
                     self.identifier = "0" + self.identifier
 
-        self.bu = bu
+        self.bu = str(bu)
         self.unit_group = str(unit_group)
-        self.unit_group_owner = unit_group_owner
-        self.env = env
-        self.buid = buid
+        self.unit_group_owner = str(unit_group_owner)
+        self.env = str(env)
+        self.buid = str(buid)
 
         self.connector_id = f"{self.cloud}{sub('[^0-9a-zA-Z]+', '_', self.identifier)}"
 
@@ -569,11 +571,13 @@ class CostCatagory:
 
         # check bucket exists and add
         if not [
-            x.add(new.cloud, new.identifier)
+            x.add(new.cloud, new.identifier, new.rg_identifier)
             for x in self.buckets
             if x.name == clean_name
         ]:
-            self.buckets.append(Bucket(clean_name).add(new.cloud, new.identifier))
+            self.buckets.append(
+                Bucket(clean_name).add(new.cloud, new.identifier, new.rg_identifier)
+            )
 
         return clean_name
 
@@ -677,11 +681,11 @@ class Bucket:
 
         return result
 
-    def add(self, cloud: str, identifier: str):
+    def add(self, cloud: str, identifier: str, rg: str = ""):
         if cloud == "aws":
             self.aws.append(identifier)
         elif cloud == "azure":
-            self.azure.append(identifier)
+            self.azure.append((identifier, rg))
         elif cloud == "gcp":
             self.gcp.append(identifier)
         else:
@@ -718,23 +722,50 @@ class Bucket:
             )
 
         if self.azure:
-            payload["rules"].append(
-                {
-                    "viewConditions": [
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "azureSubscriptionGuid",
-                                "fieldName": "azureSubscriptionGuid",
-                                "identifier": "AZURE",
-                                "identifierName": "Azure",
+            for rules in self.azure:
+                payload["rules"].append(
+                    # {
+                    #     "viewConditions": [
+                    #         {
+                    #             "type": "VIEW_ID_CONDITION",
+                    #             "viewField": {
+                    #                 "fieldId": "azureSubscriptionGuid",
+                    #                 "fieldName": "azureSubscriptionGuid",
+                    #                 "identifier": "AZURE",
+                    #                 "identifierName": "Azure",
+                    #             },
+                    #             "viewOperator": "IN",
+                    #             "values": self.azure,
+                    #         }
+                    #     ]
+                    # },
+                    {
+                        "viewConditions": [
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": "azureSubscriptionGuid",
+                                    "fieldName": "Subscription id",
+                                    "identifier": "AZURE",
+                                    "identifierName": "Azure",
+                                },
+                                "viewOperator": "IN",
+                                "values": [rules[0]],
                             },
-                            "viewOperator": "IN",
-                            "values": self.azure,
-                        }
-                    ]
-                }
-            )
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": "azureResourceGroup",
+                                    "fieldName": "Resource group name",
+                                    "identifier": "AZURE",
+                                    "identifierName": "Azure",
+                                },
+                                "viewOperator": "IN" if rules[1] else "NULL",
+                                "values": [rules[1] if rules[1] else ""],
+                            },
+                        ]
+                    }
+                )
 
         if self.gcp:
             payload["rules"].append(

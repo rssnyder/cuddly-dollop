@@ -39,6 +39,7 @@ if __name__ == "__main__":
     # loop through file and pull in account information
     for file_csv in files:
         sheet = pd.read_excel(file_csv)
+        sheet = sheet.replace({np.nan: None})
 
         for _, row in sheet.iterrows():
             # create instance of account with given data
@@ -47,6 +48,7 @@ if __name__ == "__main__":
                 row["Payer account_identifier"],
                 row["Payer account_name"],
                 row.vendor_account_identifier,
+                row.get("Resource_Group"),
                 row.vendor_account_name,
                 row.BU,
                 row["Costcenter Unit Group"],
