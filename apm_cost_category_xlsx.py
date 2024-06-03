@@ -7,18 +7,25 @@ from re import sub
 import pandas as pd
 import numpy as np
 
-from common import CloudAccount, CostCatagory
+from common import CloudAccount, CostCatagory, get_all_cc
 
 
 if __name__ == "__main__":
     # program arguments
-    if len(argv) < 2:
-        print(f"usage: {argv[0]} [xlsx]")
+    if len(argv) < 3:
+        print(f"usage: {argv[0]} [Azure RG APMID CC Name][xlsx]")
         exit(1)
 
-    xlsx = argv[1]
+    azure_rg_apmid_name = argv[1]
+    xlsx = argv[2]
 
     # core_tags = CostCatagory(core_tags_cc_name)
+
+    # get the cost buckets for azure rg apmid
+    azure_rg_apmid = CostCatagory(azure_rg_apmid_name)
+    azure_rg_apmid_buckets = azure_rg_apmid.get()
+    # for bucket in azure_rg_apmid_buckets.get("costTargets", []):
+    #     print(bucket.get("name"))
 
     sheet = pd.read_excel(xlsx)
 
@@ -56,46 +63,80 @@ if __name__ == "__main__":
         print("\n\n==============", cc)
 
         for bucket in cost_catagories[cc]:
+            rules = [
+                {
+                    "viewConditions": [
+                        {
+                            "type": "VIEW_ID_CONDITION",
+                            "viewField": {
+                                "fieldId": "labels.value",
+                                "fieldName": "user_apm_id",
+                                "identifier": "LABEL",
+                                "identifierName": "label",
+                            },
+                            "viewOperator": "IN",
+                            "values": cost_catagories[cc][bucket],
+                        }
+                    ]
+                },
+                {
+                    "viewConditions": [
+                        {
+                            "type": "VIEW_ID_CONDITION",
+                            "viewField": {
+                                "fieldId": "labels.value",
+                                "fieldName": "apm-id",
+                                "identifier": "LABEL",
+                                "identifierName": "label",
+                            },
+                            "viewOperator": "IN",
+                            "values": cost_catagories[cc][bucket],
+                        }
+                    ]
+                },
+            ]
+
+            # find appids which exist in the azure rg cc
+            common_appids = [
+                x.get("name")
+                for x in azure_rg_apmid_buckets.get("costTargets", [])
+                if x.get("name") in cost_catagories[cc][bucket]
+            ]
+            if common_appids:
+                rules.append(
+                    {
+                        "viewConditions": [
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": azure_rg_apmid.uuid,
+                                    "fieldName": azure_rg_apmid.name,
+                                    "identifier": "BUSINESS_MAPPING",
+                                    "identifierName": "Cost Categories",
+                                },
+                                "viewOperator": "IN",
+                                "values": common_appids,
+                            }
+                        ]
+                    }
+                )
+
             # create bucket with all tags
             cost_targets.append(
                 {
                     "name": bucket,
-                    "rules": [
-                        {
-                            "viewConditions": [
-                                {
-                                    "type": "VIEW_ID_CONDITION",
-                                    "viewField": {
-                                        "fieldId": "labels.value",
-                                        "fieldName": "user_apm_id",
-                                        "identifier": "LABEL",
-                                        "identifierName": "label",
-                                    },
-                                    "viewOperator": "IN",
-                                    "values": cost_catagories[cc][bucket],
-                                }
-                            ]
-                        },
-                        {
-                            "viewConditions": [
-                                {
-                                    "type": "VIEW_ID_CONDITION",
-                                    "viewField": {
-                                        "fieldId": "labels.value",
-                                        "fieldName": "apm-id",
-                                        "identifier": "LABEL",
-                                        "identifierName": "label",
-                                    },
-                                    "viewOperator": "IN",
-                                    "values": cost_catagories[cc][bucket],
-                                }
-                            ]
-                        },
-                    ],
+                    "rules": rules,
                 }
             )
 
-            print("\t", bucket, cost_catagories[cc][bucket])
+            print(
+                "\t",
+                bucket,
+                "tags: ",
+                cost_catagories[cc][bucket],
+                f"{azure_rg_apmid.name}:",
+                common_appids,
+            )
 
         print(
             f"\n\n\n\n==============\nPlease see the above for the new {cc} cost catagory"

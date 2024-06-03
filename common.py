@@ -491,7 +491,7 @@ class CloudAccount:
 class CostCatagory:
     def __init__(self, name: str):
         self.name = name
-        self.uuid = self.get_cc().get("uuid")
+        self.uuid: str = self.get_cc().get("uuid")
         self.buckets = []
 
     def __repr__(self):
@@ -661,6 +661,26 @@ class CostCatagory:
                 return resp.text
 
             return resp.json()
+
+    def get(self):
+        if self.get_uuid():
+            resp = get(
+                f"https://app.harness.io/gateway/ccm/api/business-mapping/{self.uuid}",
+                params={
+                    "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+                },
+            )
+
+            try:
+                resp.raise_for_status()
+            except exceptions.HTTPError:
+                return resp.text
+
+            return resp.json().get("resource", {})
 
 
 class Bucket:
