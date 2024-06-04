@@ -1,13 +1,9 @@
-from csv import reader
-from os import getenv
 from sys import argv, exit
-from time import sleep
 from json import dumps
 
 import pandas as pd
-import numpy as np
 
-from common import CloudAccount, CostCatagory
+from common import CostCatagory
 
 
 class AzureAccount:

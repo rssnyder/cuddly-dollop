@@ -2,7 +2,7 @@ from os import getenv
 from re import sub
 from datetime import datetime, timedelta
 
-from requests import get, put, post, delete, exceptions, Session
+from requests import get, exceptions, Session
 from requests.adapters import HTTPAdapter, Retry
 
 s = Session()

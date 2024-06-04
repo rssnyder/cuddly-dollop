@@ -1,7 +1,4 @@
-from csv import reader
-from os import getenv
 from sys import argv, exit
-from time import sleep
 
 import pandas as pd
 import numpy as np

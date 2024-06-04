@@ -1,13 +1,9 @@
-from csv import reader
-from os import getenv
 from sys import argv, exit
-from time import sleep
 from re import sub
 
 import pandas as pd
-import numpy as np
 
-from common import CloudAccount, CostCatagory, get_all_cc
+from common import CostCatagory
 
 
 if __name__ == "__main__":
@@ -76,7 +72,18 @@ if __name__ == "__main__":
                             },
                             "viewOperator": "IN",
                             "values": cost_catagories[cc][bucket],
-                        }
+                        },
+                        {
+                            "type": "VIEW_ID_CONDITION",
+                            "viewField": {
+                                "fieldId": "cloudProvider",
+                                "fieldName": "Cloud Provider",
+                                "identifier": "COMMON",
+                                "identifierName": "Common",
+                            },
+                            "viewOperator": "NOT_IN",
+                            "values": ["AZURE"],
+                        },
                     ]
                 },
                 {
@@ -91,7 +98,18 @@ if __name__ == "__main__":
                             },
                             "viewOperator": "IN",
                             "values": cost_catagories[cc][bucket],
-                        }
+                        },
+                        {
+                            "type": "VIEW_ID_CONDITION",
+                            "viewField": {
+                                "fieldId": "cloudProvider",
+                                "fieldName": "Cloud Provider",
+                                "identifier": "COMMON",
+                                "identifierName": "Common",
+                            },
+                            "viewOperator": "NOT_IN",
+                            "values": ["AZURE"],
+                        },
                     ]
                 },
             ]
