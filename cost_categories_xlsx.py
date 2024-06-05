@@ -9,7 +9,7 @@ from common import CloudAccount, CostCatagory
 
 if __name__ == "__main__":
     # program arguments
-    if len(argv) < 5:
+    if len(argv) < 7:
         print(
             f"usage: {argv[0]} [unit group cc name] [owner cc name] [bu cc name] [env cc name] [buid cc name] [az rg apmid cc name] [xlsx #1] [xlsx #2] [xlsx #3]"
         )

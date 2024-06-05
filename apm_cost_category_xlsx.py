@@ -118,7 +118,8 @@ if __name__ == "__main__":
             common_appids = [
                 x.get("name")
                 for x in azure_rg_apmid_buckets.get("costTargets", [])
-                if x.get("name") in cost_catagories[cc][bucket]
+                if x.get("name").lower()
+                in (name.lower() for name in cost_catagories[cc][bucket])
             ]
             if common_appids:
                 rules.append(
