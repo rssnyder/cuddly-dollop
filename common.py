@@ -309,6 +309,7 @@ class CloudAccount:
         unit_group_owner: str = None,
         env: str = None,
         buid: str = None,
+        apm_id: str = None,
     ):
         cloud_fmt = cloud.lower()
         if cloud_fmt not in ["aws", "azure", "gcp"]:
@@ -333,6 +334,7 @@ class CloudAccount:
         self.unit_group_owner = str(unit_group_owner)
         self.env = str(env)
         self.buid = str(buid)
+        self.apm_id = apm_id
 
         self.connector_id = f"{self.cloud}{sub('[^0-9a-zA-Z]+', '_', self.identifier)}"
 

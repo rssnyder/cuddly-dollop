@@ -1,4 +1,5 @@
 from sys import argv, exit
+from json import dumps
 
 import pandas as pd
 import numpy as np
@@ -8,9 +9,9 @@ from common import CloudAccount, CostCatagory
 
 if __name__ == "__main__":
     # program arguments
-    if len(argv) < 4:
+    if len(argv) < 5:
         print(
-            f"usage: {argv[0]} [unit group cc name] [owner cc name] [bu cc name] [env cc name] [buid cc name] [xlsx #1] [xlsx #2] [xlsx #3]"
+            f"usage: {argv[0]} [unit group cc name] [owner cc name] [bu cc name] [env cc name] [buid cc name] [az rg apmid cc name] [xlsx #1] [xlsx #2] [xlsx #3]"
         )
         exit(1)
 
@@ -19,7 +20,8 @@ if __name__ == "__main__":
     bu_cc_name = argv[3]
     env_cc_name = argv[4]
     buid_cc_name = argv[5]
-    files = argv[6:]
+    azrgapmid_cc_name = argv[6]
+    files = argv[7:]
 
     # check that all clouds were supplied
     if len(files) < 3:
@@ -32,6 +34,8 @@ if __name__ == "__main__":
     bus = CostCatagory(bu_cc_name)
     envs = CostCatagory(env_cc_name)
     buids = CostCatagory(buid_cc_name)
+    azrgapmid = CostCatagory(azrgapmid_cc_name)
+    azrgapmid_buckets = {}
 
     # loop through file and pull in account information
     for file_csv in files:
@@ -52,6 +56,7 @@ if __name__ == "__main__":
                 row["Costcenter Unit Group Owner"],
                 row["Environment"],
                 row["BUid"],
+                row.get("RG_APMID"),
             )
 
             unit_groups.add(account.unit_group, account)
@@ -59,6 +64,12 @@ if __name__ == "__main__":
             bus.add(account.bu, account)
             envs.add(account.env, account)
             buids.add(account.buid, account)
+
+            if account.apm_id:
+                if account.apm_id in azrgapmid_buckets:
+                    azrgapmid_buckets[account.apm_id].append(account)
+                else:
+                    azrgapmid_buckets[account.apm_id] = [account]
 
     print("\n\n\n\n==============")
     print(unit_groups)
@@ -106,3 +117,50 @@ if __name__ == "__main__":
     val = input("Should we apply this update? (yes/no): ")
     if val == "yes":
         print(buid_cc_name, buids.update())
+
+    azrgapmid_targets = []
+    for bucket in azrgapmid_buckets:
+        rules = []
+        for rg in azrgapmid_buckets[bucket]:
+            rules.append(
+                {
+                    "viewConditions": [
+                        {
+                            "type": "VIEW_ID_CONDITION",
+                            "viewField": {
+                                "fieldId": "azureSubscriptionGuid",
+                                "fieldName": "Subscription id",
+                                "identifier": "AZURE",
+                                "identifierName": "Azure",
+                            },
+                            "viewOperator": "IN",
+                            "values": [rg.identifier],
+                        },
+                        {
+                            "type": "VIEW_ID_CONDITION",
+                            "viewField": {
+                                "fieldId": "azureResourceGroup",
+                                "fieldName": "Resource group name",
+                                "identifier": "AZURE",
+                                "identifierName": "Azure",
+                            },
+                            "viewOperator": "IN" if rg.rg_identifier else "NULL",
+                            "values": [rg.rg_identifier if rg.rg_identifier else ""],
+                        },
+                    ]
+                }
+            )
+
+        azrgapmid_targets.append(
+            {
+                "name": bucket,
+                "rules": rules,
+            }
+        )
+
+    print("\n\n\n\n==============")
+    print("\t", dumps(azrgapmid_targets, indent=4))
+    print(f"Please see the above for the new {azrgapmid_cc_name}")
+    val = input("Should we apply this update? (yes/no): ")
+    if val == "yes":
+        print(azrgapmid.update_cost_targets(azrgapmid_targets))
