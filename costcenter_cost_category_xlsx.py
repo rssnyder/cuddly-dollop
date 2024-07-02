@@ -1,13 +1,11 @@
-from csv import reader
-from os import getenv
 from sys import argv, exit
-from time import sleep
 from re import sub
+from json import dumps
 
 import pandas as pd
-import numpy as np
+from numpy import isnan
 
-from common import CloudAccount, CostCatagory
+from common import CostCatagory
 
 
 if __name__ == "__main__":
@@ -23,7 +21,7 @@ if __name__ == "__main__":
     cost_catagories = {}
 
     # create cc for all columns
-    for column in sheet.columns[1:]:
+    for column in sheet.columns[3:]:
         cost_catagories.update({column.replace(" ", ""): {}})
 
     # for every row in the excel
@@ -32,7 +30,7 @@ if __name__ == "__main__":
         columns = row.keys()
 
         # for every column
-        for column in columns[1:]:
+        for column in columns[3:]:
             # no spaces in cc names
             cc_name = column.replace(" ", "")
             bucket_name = (
@@ -44,11 +42,37 @@ if __name__ == "__main__":
             if bucket_name == "nan":
                 bucket_name = "No Entry"
 
+            tagKey = row.iloc[2]
+            tagValue = row.iloc[1]
+            if pd.isna(tagValue):
+                continue
+            account = str(row.iloc[0])
+            if len(account) < 12:
+                for _ in range(12 - len(account)):
+                    account = "0" + account
+
             # add tag to cc/bucket
             if bucket_name in cost_catagories[cc_name]:
-                cost_catagories[cc_name][bucket_name].append(str(row.iloc[0]))
+                if tagKey in cost_catagories[cc_name][bucket_name]:
+                    cost_catagories[cc_name][bucket_name][tagKey]["accounts"].append(
+                        account
+                    )
+                    cost_catagories[cc_name][bucket_name][tagKey]["values"].append(
+                        tagValue
+                    )
+                else:
+                    cost_catagories[cc_name][bucket_name][tagKey] = {
+                        "accounts": [account],
+                        "values": [tagValue],
+                    }
             else:
-                cost_catagories[cc_name].update({bucket_name: [str(row.iloc[0])]})
+                cost_catagories[cc_name].update(
+                    {
+                        bucket_name: {
+                            tagKey: {"accounts": [account], "values": [tagValue]}
+                        }
+                    }
+                )
 
     for cc in cost_catagories:
         # create cc object
@@ -58,46 +82,69 @@ if __name__ == "__main__":
         print("\n\n==============", cc)
 
         for bucket in cost_catagories[cc]:
+            conditions = []
+            allValues = []
+            for tagKey in cost_catagories[cc][bucket]:
+                values = list(set(cost_catagories[cc][bucket][tagKey]["values"]))
+                allValues.extend(values)
+                conditions.append(
+                    {
+                        "viewConditions": [
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": "labels.value",
+                                    "fieldName": tagKey,
+                                    "identifier": "LABEL",
+                                    "identifierName": "label",
+                                },
+                                "viewOperator": "IN",
+                                "values": values,
+                            },
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": "awsUsageaccountid",
+                                    "fieldName": "Account",
+                                    "identifier": "AWS",
+                                    "identifierName": "AWS",
+                                },
+                                "viewOperator": "IN",
+                                "values": cost_catagories[cc][bucket][tagKey][
+                                    "accounts"
+                                ],
+                            },
+                        ]
+                    }
+                )
+            conditions.append(
+                {
+                    "viewConditions": [
+                        {
+                            "type": "VIEW_ID_CONDITION",
+                            "viewField": {
+                                "fieldId": "labels.value",
+                                "fieldName": "costcenter",
+                                "identifier": "LABEL",
+                                "identifierName": "label",
+                            },
+                            "viewOperator": "IN",
+                            "values": allValues,
+                        }
+                    ]
+                }
+            )
             # create bucket with all tags
             cost_targets.append(
                 {
                     "name": bucket,
-                    "rules": [
-                        {
-                            "viewConditions": [
-                                {
-                                    "type": "VIEW_ID_CONDITION",
-                                    "viewField": {
-                                        "fieldId": "labels.value",
-                                        "fieldName": "user_costcenter_3",
-                                        "identifier": "LABEL",
-                                        "identifierName": "label",
-                                    },
-                                    "viewOperator": "IN",
-                                    "values": cost_catagories[cc][bucket],
-                                }
-                            ]
-                        },
-                        {
-                            "viewConditions": [
-                                {
-                                    "type": "VIEW_ID_CONDITION",
-                                    "viewField": {
-                                        "fieldId": "labels.value",
-                                        "fieldName": "costcenter",
-                                        "identifier": "LABEL",
-                                        "identifierName": "label",
-                                    },
-                                    "viewOperator": "IN",
-                                    "values": cost_catagories[cc][bucket],
-                                }
-                            ]
-                        },
-                    ],
+                    "rules": conditions,
                 }
             )
 
             print("\t", bucket, cost_catagories[cc][bucket])
+
+        print(dumps(cost_targets))
 
         print(
             f"\n\n\n\n==============\nPlease see the above for the new {cc} cost catagory"
