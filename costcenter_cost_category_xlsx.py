@@ -129,7 +129,7 @@ if __name__ == "__main__":
                                 "identifierName": "label",
                             },
                             "viewOperator": "IN",
-                            "values": allValues,
+                            "values": list(set(allValues)),
                         }
                     ]
                 }
