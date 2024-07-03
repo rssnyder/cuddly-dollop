@@ -142,9 +142,7 @@ if __name__ == "__main__":
                 }
             )
 
-            print("\t", bucket, cost_catagories[cc][bucket])
-
-        print(dumps(cost_targets))
+        print(dumps(cost_targets, indent=2))
 
         print(
             f"\n\n\n\n==============\nPlease see the above for the new {cc} cost catagory"
