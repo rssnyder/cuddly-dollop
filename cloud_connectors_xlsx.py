@@ -51,11 +51,12 @@ if __name__ == "__main__":
             for _, row in sheet.iterrows():
                 # create instance of account with given data
                 account = CloudAccount(
-                    row.Vendor,
-                    row["Payer account_identifier"],
-                    row["Payer account_name"],
-                    row.vendor_account_identifier,
-                    row.vendor_account_name,
+                    cloud=row.Vendor,
+                    payer_id=row["Payer account_identifier"],
+                    payer=row["Payer account_name"],
+                    identifier=row.vendor_account_identifier,
+                    name=row.vendor_account_name,
+                    rg_identifier="",
                 )
 
                 # print(account.identifier)
