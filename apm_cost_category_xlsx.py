@@ -1,9 +1,9 @@
 from sys import argv, exit
-from re import sub
+from json import dumps
 
 import pandas as pd
 
-from common import CostCatagory
+from common import CostCatagory, Bucket, format_aws_account_id
 
 
 if __name__ == "__main__":
@@ -40,16 +40,46 @@ if __name__ == "__main__":
         for column in columns[1:]:
             # no spaces in cc names
             cc_name = column.replace(" ", "")
-            bucket_name = str(row[column]).replace(".0", "")
-            bucket_name = sub("[^0-9a-zA-Z-@()., ']+", "", bucket_name)
+
+            bucket_name = Bucket.clean_name(str(row[column]))
+
             if bucket_name == "nan":
                 bucket_name = "No Entry"
 
+            # get the key to use in the bucket rule
+            tagKey = row.iloc[2]
+            # and the value
+            tagValue = row.iloc[1]
+            # sometimes its empty?
+            if pd.isna(tagValue):
+                continue
+
+            # get or format account id
+            account = format_aws_account_id(str(row.iloc[0]))
+
+            # add tag to cc/bucket
             # add tag to cc/bucket
             if bucket_name in cost_catagories[cc_name]:
-                cost_catagories[cc_name][bucket_name].append(str(row.iloc[0]))
+                if tagKey in cost_catagories[cc_name][bucket_name]:
+                    cost_catagories[cc_name][bucket_name][tagKey]["accounts"].append(
+                        account
+                    )
+                    cost_catagories[cc_name][bucket_name][tagKey]["values"].append(
+                        tagValue
+                    )
+                else:
+                    cost_catagories[cc_name][bucket_name][tagKey] = {
+                        "accounts": [account],
+                        "values": [tagValue],
+                    }
             else:
-                cost_catagories[cc_name].update({bucket_name: [str(row.iloc[0])]})
+                cost_catagories[cc_name].update(
+                    {
+                        bucket_name: {
+                            tagKey: {"accounts": [account], "values": [tagValue]}
+                        }
+                    }
+                )
 
     for cc in cost_catagories:
         # create cc object
@@ -59,70 +89,89 @@ if __name__ == "__main__":
         print("\n\n==============", cc)
 
         for bucket in cost_catagories[cc]:
-            rules = [
-                {
-                    "viewConditions": [
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "labels.value",
-                                "fieldName": "user_elvh_apm_id",
-                                "identifier": "LABEL",
-                                "identifierName": "label",
-                            },
-                            "viewOperator": "IN",
-                            "values": cost_catagories[cc][bucket],
-                        },
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "cloudProvider",
-                                "fieldName": "Cloud Provider",
-                                "identifier": "COMMON",
-                                "identifierName": "Common",
-                            },
-                            "viewOperator": "NOT_IN",
-                            "values": ["AZURE"],
-                        },
-                    ]
-                },
-                {
-                    "viewConditions": [
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "labels.value",
-                                "fieldName": "apm-id",
-                                "identifier": "LABEL",
-                                "identifierName": "label",
-                            },
-                            "viewOperator": "IN",
-                            "values": cost_catagories[cc][bucket],
-                        },
-                        {
-                            "type": "VIEW_ID_CONDITION",
-                            "viewField": {
-                                "fieldId": "cloudProvider",
-                                "fieldName": "Cloud Provider",
-                                "identifier": "COMMON",
-                                "identifierName": "Common",
-                            },
-                            "viewOperator": "NOT_IN",
-                            "values": ["AZURE"],
-                        },
-                    ]
-                },
-            ]
+            conditions = []
+            allValues = []
+            # for aws, do account specific rules
+            for tagKey in cost_catagories[cc][bucket]:
+                values = list(set(cost_catagories[cc][bucket][tagKey]["values"]))
+                # record all tag values for later use with gcp and azure
+                allValues.extend(values)
 
+                # skip if not an aws tag
+                if not tagKey.startswith("user_"):
+                    continue
+
+                conditions.append(
+                    {
+                        "viewConditions": [
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": "labels.value",
+                                    "fieldName": tagKey,
+                                    "identifier": "LABEL",
+                                    "identifierName": "label",
+                                },
+                                "viewOperator": "IN",
+                                "values": values,
+                            },
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": "awsUsageaccountid",
+                                    "fieldName": "Account",
+                                    "identifier": "AWS",
+                                    "identifierName": "AWS",
+                                },
+                                "viewOperator": "IN",
+                                "values": cost_catagories[cc][bucket][tagKey][
+                                    "accounts"
+                                ],
+                            },
+                        ]
+                    }
+                )
+
+            allValuesDeDupe = list(set(allValues))
+            # for gcp use all the tag values, with a set key
+            conditions.append(
+                {
+                    "viewConditions": [
+                        {
+                            "type": "VIEW_ID_CONDITION",
+                            "viewField": {
+                                "fieldId": "labels.value",
+                                "fieldName": "elvh-apm-id",
+                                "identifier": "LABEL",
+                                "identifierName": "label",
+                            },
+                            "viewOperator": "IN",
+                            "values": allValuesDeDupe,
+                        },
+                        {
+                            "type": "VIEW_ID_CONDITION",
+                            "viewField": {
+                                "fieldId": "cloudProvider",
+                                "fieldName": "Cloud Provider",
+                                "identifier": "COMMON",
+                                "identifierName": "Common",
+                            },
+                            "viewOperator": "IN",
+                            "values": ["GCP"],
+                        },
+                    ]
+                }
+            )
+
+            # for azure use buckets from the azurerm cc which has buckets the names of the tag keys
             # find appids which exist in the azure rg cc
             common_appids = [
                 x.get("name")
                 for x in azure_rg_apmid_buckets.get("costTargets", [])
-                if x.get("name").lower()
-                in (name.lower() for name in cost_catagories[cc][bucket])
+                if x.get("name").lower() in (name.lower() for name in allValuesDeDupe)
             ]
             if common_appids:
-                rules.append(
+                conditions.append(
                     {
                         "viewConditions": [
                             {
@@ -140,22 +189,15 @@ if __name__ == "__main__":
                     }
                 )
 
-            # create bucket with all tags
+            # create bucket
             cost_targets.append(
                 {
                     "name": bucket,
-                    "rules": rules,
+                    "rules": conditions,
                 }
             )
 
-            print(
-                "\t",
-                bucket,
-                "tags: ",
-                cost_catagories[cc][bucket],
-                f"{azure_rg_apmid.name}:",
-                common_appids,
-            )
+        print(dumps(cost_targets, indent=2))
 
         print(
             f"\n\n\n\n==============\nPlease see the above for the new {cc} cost catagory"

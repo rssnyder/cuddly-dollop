@@ -1,11 +1,10 @@
 from sys import argv, exit
-from re import sub
 from json import dumps
 
 import pandas as pd
 from numpy import isnan
 
-from common import CostCatagory
+from common import CostCatagory, Bucket, format_aws_account_id
 
 
 if __name__ == "__main__":
@@ -33,23 +32,22 @@ if __name__ == "__main__":
         for column in columns[3:]:
             # no spaces in cc names
             cc_name = column.replace(" ", "")
-            bucket_name = (
-                str(row[column])
-                .replace(".0", "")
-                .replace(b"\\xa0".decode("unicode_escape"), " ")
-            )
-            bucket_name = sub("[^0-9a-zA-Z-@()., ']+", "", bucket_name)
+
+            bucket_name = Bucket.clean_name(str(row[column]))
+
             if bucket_name == "nan":
                 bucket_name = "No Entry"
 
+            # get the key to use in the bucket rule
             tagKey = row.iloc[2]
+            # and the value
             tagValue = row.iloc[1]
+            # sometimes its empty?
             if pd.isna(tagValue):
                 continue
-            account = str(row.iloc[0])
-            if len(account) < 12:
-                for _ in range(12 - len(account)):
-                    account = "0" + account
+
+            # get or format account id
+            account = format_aws_account_id(str(row.iloc[0]))
 
             # add tag to cc/bucket
             if bucket_name in cost_catagories[cc_name]:
@@ -124,17 +122,28 @@ if __name__ == "__main__":
                             "type": "VIEW_ID_CONDITION",
                             "viewField": {
                                 "fieldId": "labels.value",
-                                "fieldName": "costcenter",
+                                "fieldName": "elvh-costcenter",
                                 "identifier": "LABEL",
                                 "identifierName": "label",
                             },
                             "viewOperator": "IN",
                             "values": list(set(allValues)),
-                        }
+                        },
+                        {
+                            "type": "VIEW_ID_CONDITION",
+                            "viewField": {
+                                "fieldId": "cloudProvider",
+                                "fieldName": "Cloud Provider",
+                                "identifier": "COMMON",
+                                "identifierName": "Common",
+                            },
+                            "viewOperator": "IN",
+                            "values": ["GCP", "AZURE"],
+                        },
                     ]
                 }
             )
-            # create bucket with all tags
+            # create bucket
             cost_targets.append(
                 {
                     "name": bucket,

@@ -295,6 +295,15 @@ def get_gcp_project_cost(project_id: str, days_ago: int = 90) -> int:
         return 0
 
 
+def format_aws_account_id(input: str) -> str:
+    if len(input) < 12:
+        for _ in range(12 - len(input)):
+            result = "0" + input
+        return result
+    else:
+        return input
+
+
 class CloudAccount:
     def __init__(
         self,
@@ -693,7 +702,13 @@ class Bucket:
         self.gcp = []
 
     def clean_name(name: str):
-        return name.replace("'", "")
+        return sub(
+            "[^0-9a-zA-Z-@()., ']+",
+            "",
+            name.replace("'", "")
+            .replace(".0", "")
+            .replace(b"\\xa0".decode("unicode_escape"), " "),
+        )
 
     def __repr__(self):
         result = "\n" + self.name
