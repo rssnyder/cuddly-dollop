@@ -696,18 +696,16 @@ class CostCatagory:
 
 class Bucket:
     def __init__(self, name: str):
-        self.name = name.replace("'", "")
+        self.name = self.clean_name(name)
         self.aws = []
         self.azure = []
         self.gcp = []
 
     def clean_name(name: str):
-        return sub(
-            "[^0-9a-zA-Z-@()., ']+",
-            "",
-            name.replace("'", "")
+        return (
+            sub("[^0-9a-zA-Z-@()., ]+", "", name)
             .replace(".0", "")
-            .replace(b"\\xa0".decode("unicode_escape"), " "),
+            .replace(b"\\xa0".decode("unicode_escape"), " ")
         )
 
     def __repr__(self):
