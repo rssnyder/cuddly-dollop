@@ -696,7 +696,7 @@ class CostCatagory:
 
 class Bucket:
     def __init__(self, name: str):
-        self.name = self.clean_name(name)
+        self.name = Bucket.clean_name(name)
         self.aws = []
         self.azure = []
         self.gcp = []
